@@ -5,16 +5,13 @@ package backend
 ////////////
 
 func (c *CPU) ShiftLeftArithmetic(n byte) byte {
-	if n&0x80 > 0 {
-		c.SetFlag(CFlag)
-	}
 	nv := n << 1
 
+	c.MaybeFlagSetter(n&0x80 > 0, CFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if nv == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(nv == 0, ZFlag)
+
 	return nv
 }
 
@@ -28,16 +25,13 @@ func (c *CPU) ShiftLeftArithmeticHL() {
 }
 
 func (c *CPU) ShiftRightLogical(n byte) byte {
-	if n&0x01 > 0 {
-		c.SetFlag(CFlag)
-	}
 	nv := n >> 1
 
+	c.MaybeFlagSetter(n&0x01 > 0, CFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if nv == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(nv == 0, ZFlag)
+
 	return nv
 }
 
@@ -51,20 +45,15 @@ func (c *CPU) ShiftRightLogicalHL() {
 }
 
 func (c *CPU) ShiftRightArithmetic(n byte) byte {
-	if n&0x01 > 0 {
-		c.SetFlag(CFlag)
-	}
-
 	// golang performs arithmetic shift if shift applied to signed value
 	// https://medium.com/learning-the-go-programming-language/bit-hacking-with-go-e0acee258827
 	// hence cast byte to signed 8-bit int and perform shift
 	nv := int8(n) >> 1
 
+	c.MaybeFlagSetter(n&0x01 > 0, CFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if nv == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(nv == 0, ZFlag)
 
 	return byte(nv)
 }

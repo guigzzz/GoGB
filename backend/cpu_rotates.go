@@ -10,16 +10,11 @@ package backend
 func (c *CPU) rotateLeftn(n byte) byte {
 	carryset := c.ReadFlag(CFlag)
 	res := (n << 1) | carryset
-	// TODO: Set Flags
 
-	if res == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if n&0x80 > 0 {
-		c.SetFlag(CFlag)
-	}
+	c.MaybeFlagSetter(n&0x80 > 0, CFlag)
 
 	return res
 }
@@ -43,15 +38,10 @@ func (c *CPU) rotateLeftCn(n byte) byte {
 	}
 	res := (n << 1) | carry
 
-	// TODO: Set Flags
-	if res == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if n&0x80 > 0 {
-		c.SetFlag(CFlag)
-	}
+	c.MaybeFlagSetter(n&0x80 > 0, CFlag)
 
 	return res
 }
@@ -74,14 +64,10 @@ func (c *CPU) rotateRightn(n byte) byte {
 	carryset := c.ReadFlag(CFlag)
 	res := (n >> 1) | carryset
 
-	if res == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if n&0x01 > 0 {
-		c.SetFlag(CFlag)
-	}
+	c.MaybeFlagSetter(n&0x01 > 0, CFlag)
 
 	return res
 }
@@ -105,15 +91,10 @@ func (c *CPU) rotateRightCn(n byte) byte {
 	}
 	res := (n >> 1) | carry
 
-	// TODO: Set Flags
-	if res == 0 {
-		c.SetFlag(ZFlag)
-	}
+	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
 	c.ResetFlag(HFlag)
-	if n&0x01 > 0 {
-		c.SetFlag(CFlag)
-	}
+	c.MaybeFlagSetter(n&0x01 > 0, CFlag)
 
 	return res
 }
