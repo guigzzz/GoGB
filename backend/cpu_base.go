@@ -188,7 +188,7 @@ func (c *CPU) MaybeFlagSetter(condition bool, f Flag) {
 	}
 }
 
-// GetPCIncrement increment PC (or not) according to performed operation
+// GetPCIncrement return PC increment for opcode
 func GetPCIncrement(op byte) uint16 {
 	switch op {
 	case 0xCB: // CB Prefixed instructions
@@ -322,9 +322,8 @@ func (c *CPU) FetchCycles() byte {
 	op := c.ram[c.PC]
 	if op == 0xCB {
 		return getCbprefixedCycles(c.ram[c.PC+1])
-	} else {
-		return getUnprefixedCycles(op)
 	}
+	return getUnprefixedCycles(op)
 }
 
 func getUnprefixedCycles(op byte) byte {

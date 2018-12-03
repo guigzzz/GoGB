@@ -106,30 +106,35 @@ func (c *CPU) JumpRelativeC(v byte) {
 
 ///// RET /////
 
+// Ret pop two bytes from stack, build address and jump to that address
 func (c *CPU) Ret() {
 	v := c.pop()
 	addr := PackBytes(c.pop(), v)
 	c.Jump(addr)
 }
 
+// RetNZ return if not zero
 func (c *CPU) RetNZ() {
 	if !c.IsFlagSet(ZFlag) {
 		c.Ret()
 	}
 }
 
+// RetZ return if zero
 func (c *CPU) RetZ() {
 	if c.IsFlagSet(ZFlag) {
 		c.Ret()
 	}
 }
 
+// RetNC return if not carry
 func (c *CPU) RetNC() {
 	if !c.IsFlagSet(CFlag) {
 		c.Ret()
 	}
 }
 
+// RetC return if carry
 func (c *CPU) RetC() {
 	if c.IsFlagSet(CFlag) {
 		c.Ret()
@@ -138,6 +143,7 @@ func (c *CPU) RetC() {
 
 ///// CALL /////
 
+// Call push PC to stack and jump to specified address
 func (c *CPU) Call(v uint16) {
 	// pre-emptively increment PC such that on return,
 	// PC points to the next instruction (in memory)
@@ -146,24 +152,28 @@ func (c *CPU) Call(v uint16) {
 	c.Jump(v)
 }
 
+// CallNZ call if not zero
 func (c *CPU) CallNZ(v uint16) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Call(v)
 	}
 }
 
+// CallZ call if zero
 func (c *CPU) CallZ(v uint16) {
 	if c.IsFlagSet(ZFlag) {
 		c.Call(v)
 	}
 }
 
+// CallNC call if not carry
 func (c *CPU) CallNC(v uint16) {
 	if !c.IsFlagSet(CFlag) {
 		c.Call(v)
 	}
 }
 
+// CallC call if carry
 func (c *CPU) CallC(v uint16) {
 	if c.IsFlagSet(CFlag) {
 		c.Call(v)
@@ -172,6 +182,8 @@ func (c *CPU) CallC(v uint16) {
 
 ///// RST /////
 
+// Rst restart cpu, v can only be:
+// 0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38
 func (c *CPU) Rst(v byte) {
 	c.pushPC()
 	c.PC = uint16(v)
