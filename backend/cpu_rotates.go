@@ -7,6 +7,8 @@ package backend
 ///// RLX /////
 
 // RotateLeftn helper function for RL
+// bit 7 -> carry, carry -> bit 0
+// i.e. carry = 1, n = 01000000 => RL => carry = 0, n = 10000001
 func (c *CPU) rotateLeftn(n byte) byte {
 	carryset := c.ReadFlag(CFlag)
 	res := (n << 1) | carryset
@@ -31,6 +33,8 @@ func (c *CPU) RotateLeftHL() {
 }
 
 // RotateLeftCn helper function for RLC
+// bit 7 -> carry, bit 7 -> 0
+// i.e. carry = 0, n = 10000000 => RLC => carry = 1, n = 00000001
 func (c *CPU) rotateLeftCn(n byte) byte {
 	carry := byte(0)
 	if n&0x80 > 0 {
@@ -62,7 +66,7 @@ func (c *CPU) RotateLeftCHL() {
 // rotateRightn helper function for RR
 func (c *CPU) rotateRightn(n byte) byte {
 	carryset := c.ReadFlag(CFlag)
-	res := (n >> 1) | carryset
+	res := (n >> 1) | (carryset << 7)
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
@@ -89,7 +93,7 @@ func (c *CPU) rotateRightCn(n byte) byte {
 	if n&0x01 > 0 {
 		carry = 1
 	}
-	res := (n >> 1) | carry
+	res := (n >> 1) | (carry << 7)
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)

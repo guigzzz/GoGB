@@ -1,7 +1,5 @@
 package main
 
-import "gogb/backend"
-
 func main() {
 
 	// driver.Main(backend.Run)
@@ -22,7 +20,7 @@ func main() {
 	// 	// r.ReadBytes('\n')
 	// }
 
-	c := backend.NewTestCPU()
+	// c := backend.NewTestCPU()
 	// c.PC = 0x100
 	// c.SP = 0xFFFE
 
@@ -45,7 +43,7 @@ func main() {
 	// 	d.PrintDebug(c)
 	// }
 
-	p := backend.NewPPU(c)
-	p.DrawFrame()
+	// p := backend.NewPPU(c)
+	// p.DrawFrame()
 
 }
