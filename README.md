@@ -1,8 +1,9 @@
-# GoDB
+# GoGB
 
 GoGB is a work-in-progress of a Gameboy emulator written in Go. The main objectives for this project are:
 - build a medium-large sized project in Go to become familiar with the language and the design patterns associated with it.
 - write an emulator that is performant enough to run [Super Mario Land](https://en.wikipedia.org/wiki/Super_Mario_Land) at a playable frame-rate.
+- I am not planning on implementing sound for now.
 
 # Todo
 - [ ] create unit test suite for backend
