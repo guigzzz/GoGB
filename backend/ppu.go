@@ -3,6 +3,8 @@ package backend
 import (
 	"fmt"
 	"image"
+	"image/color"
+	"time"
 )
 
 // Bit 7 - LCD Display Enable             (0=Off, 1=On)
@@ -137,19 +139,69 @@ func (p *PPU) getSpritePixels() {
 
 }
 
-func (p *PPU) drawLine(lineNumbers chan byte) {
-	// lineNumber will vary from 0 to 153
-	// 0 to 143 included is to draw each one of the 144 screen lines
-	// 144 to 153 is V-blank period
+func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
 
-	for lineNumber := range lineNumbers {
-		pixels := p.getBackgroundPixels(lineNumber)
-		// window pixels := getWindowPixels
-		// spritePixels := getSpritePixels
+	lineNumber := byte(0)
+	for {
+		<-canRenderLine.C
 
-		for i, pixel := range pixels {
-			p.screenBuffer[int(lineNumber)*160+i] = pixel
+		switch {
+		case lineNumber < 144:
+			pixels := p.getBackgroundPixels(lineNumber)
+			// window pixels := getWindowPixels
+			// spritePixels := getSpritePixels
+
+			for i, pixel := range pixels {
+				p.screenBuffer[int(lineNumber)*160+i] = pixel
+			}
+			lineNumber++
+
+		case lineNumber < 154: // vblank
+			lineNumber++
+
+		case lineNumber == 154:
+			canRenderScreen <- struct{}{}
+			lineNumber = 0
 		}
 	}
+}
 
+func (p *PPU) writeBufferToImage() {
+	white := color.RGBA{255, 255, 255, 255}
+	lightgray := color.RGBA{192, 192, 192, 255}
+	gray := color.RGBA{128, 128, 128, 255}
+	black := color.RGBA{0, 0, 0, 255}
+
+	for i := 0; i < 144; i++ {
+		for j := 0; j < 160; j++ {
+			switch p.screenBuffer[i*160+j] {
+			case 0:
+				p.image.SetRGBA(i, j, black)
+			case 1:
+				p.image.SetRGBA(i, j, gray)
+			case 2:
+				p.image.SetRGBA(i, j, lightgray)
+			case 3:
+				p.image.SetRGBA(i, j, white)
+			default:
+				panic("Got unexpected color")
+			}
+		}
+	}
+}
+
+func (p *PPU) Renderer() {
+
+	canRenderScreenChan := make(chan struct{}, 10)
+	lineTicker := time.NewTicker(108719 * time.Nanosecond)
+
+	go p.lineByLineRender(lineTicker, canRenderScreenChan)
+
+	for {
+		start := time.Now()
+		<-canRenderScreenChan
+		fmt.Println(time.Since(start))
+
+		p.writeBufferToImage()
+	}
 }
