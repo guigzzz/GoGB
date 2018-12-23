@@ -192,17 +192,31 @@ func (p *PPU) writeBufferToImage() {
 		for j := 0; j < 160; j++ {
 			switch p.screenBuffer[i*160+j] {
 			case 3:
-				p.Image.SetRGBA(i, j, black)
+				p.Image.SetRGBA(j, i, black)
 			case 2:
-				p.Image.SetRGBA(i, j, gray)
+				p.Image.SetRGBA(j, i, gray)
 			case 1:
-				p.Image.SetRGBA(i, j, lightgray)
+				p.Image.SetRGBA(j, i, lightgray)
 			case 0:
-				p.Image.SetRGBA(i, j, white)
+				p.Image.SetRGBA(j, i, white)
 			default:
 				panic("Got unexpected color")
 			}
 		}
+	}
+
+	red := color.RGBA{255, 0, 0, 255}
+	for j := 0; j < 160; j++ {
+		p.Image.SetRGBA(j, 0, red)
+		p.Image.SetRGBA(j, 1, red)
+		p.Image.SetRGBA(j, 142, red)
+		p.Image.SetRGBA(j, 143, red)
+	}
+	for i := 0; i < 144; i++ {
+		p.Image.SetRGBA(0, i, red)
+		p.Image.SetRGBA(1, i, red)
+		p.Image.SetRGBA(158, i, red)
+		p.Image.SetRGBA(159, i, red)
 	}
 }
 

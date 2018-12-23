@@ -34,7 +34,7 @@ func NewScreenRenderer(p *backend.PPU, width, height int) *ScreenRenderer {
 	s.imageToDisplay = p.Image
 	s.imageToDisplayMutex = p.ImageMutex
 
-	fmt.Println("init GLFW")
+	fmt.Println("[GLFW] initialisation")
 	if err := glfw.Init(); err != nil {
 		closer.Fatalln(err)
 	}
@@ -43,8 +43,8 @@ func NewScreenRenderer(p *backend.PPU, width, height int) *ScreenRenderer {
 	glfw.WindowHint(glfw.OpenGLProfile, glfw.OpenGLCoreProfile)
 	glfw.WindowHint(glfw.OpenGLForwardCompatible, glfw.True)
 
-	fmt.Println("creating GLFW window")
-	win, err := glfw.CreateWindow(width, height, "Nuklear Demo", nil, nil)
+	fmt.Println("[GLFW] creating window")
+	win, err := glfw.CreateWindow(width, height, "GoGB", nil, nil)
 	if err != nil {
 		closer.Fatalln(err)
 	}
@@ -52,14 +52,14 @@ func NewScreenRenderer(p *backend.PPU, width, height int) *ScreenRenderer {
 
 	s.win = win
 
-	fmt.Printf("glfw: created window %dx%d\n", width, height)
+	fmt.Printf("[GLFW] created window %dx%d\n", width, height)
 
 	if err := gl.Init(); err != nil {
-		closer.Fatalln("opengl: init failed:", err)
+		closer.Fatalln("[OpenGL] init failed:", err)
 	}
 	gl.Viewport(0, 0, int32(width), int32(height))
 
-	fmt.Println("NK init")
+	fmt.Println("[NK] initialisation")
 	s.ctx = nk.NkPlatformInit(win, nk.PlatformInstallCallbacks)
 
 	atlas := nk.NewFontAtlas()
@@ -82,8 +82,6 @@ func (s *ScreenRenderer) startRendering() {
 	})
 
 	fpsTicker := time.NewTicker(time.Second / 60)
-
-	fmt.Println("starting to render...")
 
 	for {
 		select {
@@ -108,14 +106,15 @@ func (s *ScreenRenderer) startRendering() {
 func (s *ScreenRenderer) displayFrame() {
 	nk.NkPlatformNewFrame()
 
-	// Layout
-	bounds := nk.NkRect(0, 0, 160, 144)
-	update := nk.NkBegin(s.ctx, "Demo", bounds, 0)
+	width, height := s.win.GetSize()
 
-	if update > 0 {
+	// Layout
+	bounds := nk.NkRect(0, 0, float32(width), float32(height))
+	if nk.NkBegin(s.ctx, "Demo", bounds, 0) > 0 {
 		s.imageToDisplayMutex.RLock()
 
 		frameImg := rgbaTex(&s.frameTex, s.imageToDisplay)
+		nk.NkLayoutRowStatic(s.ctx, 144, 160, 1)
 		nk.NkImage(s.ctx, frameImg)
 
 		s.imageToDisplayMutex.RUnlock()
@@ -124,7 +123,6 @@ func (s *ScreenRenderer) displayFrame() {
 	nk.NkEnd(s.ctx)
 
 	// Render
-	width, height := s.win.GetSize()
 	gl.Viewport(0, 0, int32(width), int32(height))
 	gl.Clear(gl.COLOR_BUFFER_BIT)
 	nk.NkPlatformRender(nk.AntiAliasingOn, maxVertexBuffer, maxElementBuffer)
