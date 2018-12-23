@@ -185,8 +185,8 @@ func (p *PPU) writeBufferToImage() {
 	gray := color.RGBA{128, 128, 128, 255}
 	black := color.RGBA{0, 0, 0, 255}
 
-	p.ImageMutex.RLock()
-	defer p.ImageMutex.RUnlock()
+	p.ImageMutex.Lock()
+	defer p.ImageMutex.Unlock()
 
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
