@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"sync"
 	"time"
 )
 
@@ -20,15 +21,17 @@ import (
 // contains references to ram sections containing video relevant data
 type PPU struct {
 	ram          [1 << 16]byte   // reference to memory shared with CPU
-	image        *image.RGBA     // represents the current screen
+	Image        *image.RGBA     // represents the current screen
+	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
 }
 
 // NewPPU creates a new PPU object
-func NewPPU(c CPU) PPU {
-	p := PPU{}
+func NewPPU(c CPU) *PPU {
+	p := new(PPU)
 	p.ram = c.ram
-	p.image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
+	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
+	p.ImageMutex = new(sync.RWMutex)
 	return p
 }
 
@@ -141,9 +144,16 @@ func (p *PPU) getSpritePixels() {
 
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
 
+	// 114 clocks per line
+	// OAM search 20 clocks
+	// pixel transfer 43 blocks
+	// hblank 51 clocks
+
+	// 144 lines + 10 vblank
+
 	lineNumber := byte(0)
-	for {
-		<-canRenderLine.C
+
+	for range canRenderLine.C {
 
 		switch {
 		case lineNumber < 144:
@@ -156,11 +166,14 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 			}
 			lineNumber++
 
-		case lineNumber < 154: // vblank
+			if lineNumber == 144 {
+				canRenderScreen <- struct{}{}
+			}
+
+		case lineNumber < 154:
 			lineNumber++
 
 		case lineNumber == 154:
-			canRenderScreen <- struct{}{}
 			lineNumber = 0
 		}
 	}
@@ -172,17 +185,20 @@ func (p *PPU) writeBufferToImage() {
 	gray := color.RGBA{128, 128, 128, 255}
 	black := color.RGBA{0, 0, 0, 255}
 
+	p.ImageMutex.RLock()
+	defer p.ImageMutex.RUnlock()
+
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
 			switch p.screenBuffer[i*160+j] {
-			case 0:
-				p.image.SetRGBA(i, j, black)
-			case 1:
-				p.image.SetRGBA(i, j, gray)
-			case 2:
-				p.image.SetRGBA(i, j, lightgray)
 			case 3:
-				p.image.SetRGBA(i, j, white)
+				p.Image.SetRGBA(i, j, black)
+			case 2:
+				p.Image.SetRGBA(i, j, gray)
+			case 1:
+				p.Image.SetRGBA(i, j, lightgray)
+			case 0:
+				p.Image.SetRGBA(i, j, white)
 			default:
 				panic("Got unexpected color")
 			}
@@ -192,16 +208,12 @@ func (p *PPU) writeBufferToImage() {
 
 func (p *PPU) Renderer() {
 
-	canRenderScreenChan := make(chan struct{}, 10)
+	canRenderScreenChan := make(chan struct{})
 	lineTicker := time.NewTicker(108719 * time.Nanosecond)
 
 	go p.lineByLineRender(lineTicker, canRenderScreenChan)
 
-	for {
-		start := time.Now()
-		<-canRenderScreenChan
-		fmt.Println(time.Since(start))
-
+	for range canRenderScreenChan {
 		p.writeBufferToImage()
 	}
 }
