@@ -179,13 +179,15 @@ func (p *PPU) getWindowPixels(lineNumber byte) [144]byte {
 
 		// 16 bytes per tile, 8 lines of 8 pixels per tiles
 		// meaning 2 bytes per line
-		lineDataIndex := tileMapIndex*16 + 2*rowInTile
+		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
 		lineData := tileData[lineDataIndex : lineDataIndex+2]
 
-		msb := lineData[1] >> (6 - i%8)
-		lsb := lineData[0] >> (7 - i%8)
+		msb := (lineData[1] >> (7 - byte(i)%8)) & 1
+		lsb := (lineData[0] >> (7 - byte(i)%8)) & 1
 
-		pixels[i] = mapColorToPalette(p.getBGPalette(), msb|lsb)
+		colorCode := (msb << 1) | lsb
+
+		pixels[i] = mapColorToPalette(p.getBGPalette(), colorCode)
 	}
 
 	return pixels
@@ -279,48 +281,38 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 	}
 }
 
-var squarePos int
+// var squarePos int
 
-func (p *PPU) writeBufferToImage() {
+func getPixelColor(value byte) color.RGBA {
 	white := color.RGBA{255, 255, 255, 255}
 	lightgray := color.RGBA{192, 192, 192, 255}
 	gray := color.RGBA{128, 128, 128, 255}
 	black := color.RGBA{0, 0, 0, 255}
+
+	switch value {
+	case 3:
+		return black
+	case 2:
+		return gray
+	case 1:
+		return lightgray
+	case 0:
+		return white
+	default:
+		panic("Got unexpected color")
+	}
+}
+
+func (p *PPU) writeBufferToImage() {
 
 	p.ImageMutex.Lock()
 	defer p.ImageMutex.Unlock()
 
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
-			switch p.screenBuffer[i*160+j] {
-			case 3:
-				p.Image.SetRGBA(j, i, black)
-			case 2:
-				p.Image.SetRGBA(j, i, gray)
-			case 1:
-				p.Image.SetRGBA(j, i, lightgray)
-			case 0:
-				p.Image.SetRGBA(j, i, white)
-			default:
-				panic("Got unexpected color")
-			}
+			p.Image.SetRGBA(j, i, getPixelColor(p.screenBuffer[i*160+j]))
 		}
 	}
-
-	// squareSize := 10
-	// height := 144 - squareSize
-	// width := 160 - squareSize
-
-	// yPos := squarePos / width
-	// xPos := squarePos % width
-
-	// red := color.RGBA{255, 0, 0, 255}
-	// for i := yPos; i < yPos+squareSize; i++ {
-	// 	for j := xPos; j < xPos+squareSize; j++ {
-	// 		p.Image.SetRGBA(j, i, red)
-	// 	}
-	// }
-	// squarePos = (squarePos + 1) % (height * width)
 }
 
 func (p *PPU) Renderer() {
@@ -333,4 +325,50 @@ func (p *PPU) Renderer() {
 	for range canRenderScreenChan {
 		p.writeBufferToImage()
 	}
+}
+
+func (p *PPU) PrintDebug() {
+	y, x := p.getScroll()
+	fmt.Printf("LCDC: %0.8b, BG Palette: %0.8b, BG Y scroll: %d, BG X scroll: %d\n",
+		p.ram[0xFF40], p.getBGPalette(), y, x)
+}
+
+func (p *PPU) DumpBackground() image.Image {
+	image := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{255, 255}})
+
+	tileMap := p.getBackgroundTileMap()
+	tileData, interpretIndexAsSigned := p.getBackgroundTileData()
+
+	for i := 0; i < 32; i++ {
+		for j := 0; j < 32; j++ {
+
+			index := i*32 + j
+			tileMapIndex := tileMap[index]
+
+			if interpretIndexAsSigned {
+				tileMapIndex ^= 0x80
+			}
+
+			data := tileData[uint(tileMapIndex)*16 : uint(tileMapIndex+1)*16]
+
+			for k := 0; k < 8; k++ {
+
+				lineData := data[k*2 : (k+1)*2]
+
+				for l := 0; l < 8; l++ {
+
+					msb := (lineData[1] >> (7 - byte(l))) & 1
+					lsb := (lineData[0] >> (7 - byte(l))) & 1
+
+					colorCode := (msb << 1) | lsb
+
+					pixel := mapColorToPalette(p.getBGPalette(), colorCode)
+					image.SetRGBA(j*8+l, i*8+k, getPixelColor(pixel))
+				}
+			}
+
+		}
+	}
+
+	return image
 }

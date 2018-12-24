@@ -43,14 +43,14 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 2:
 		switch oprow {
 		case 0: // LD (BC), A
-			c.ram[c.ReadBC()] = A
+			c.ram[c.ReadBC()] = c.reg[A]
 		case 1: // LD (DE), A
-			c.ram[c.ReadDE()] = A
+			c.ram[c.ReadDE()] = c.reg[A]
 		case 2: // LD (HL+), A
-			c.ram[c.ReadHL()] = A
+			c.ram[c.ReadHL()] = c.reg[A]
 			c.IncRegs(H, L)
 		case 3: // LD (HL-), A
-			c.ram[c.ReadHL()] = A
+			c.ram[c.ReadHL()] = c.reg[A]
 			c.DecRegs(H, L)
 		}
 	case 3:
