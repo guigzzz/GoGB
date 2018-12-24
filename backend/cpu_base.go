@@ -34,20 +34,18 @@ const (
 // CPU represents the current cpu state
 type CPU struct {
 	reg   [8]byte
-	SP    uint16        // stack pointer
-	PC    uint16        // program counter
-	ram   [1 << 16]byte // 64 KB ram
+	SP    uint16 // stack pointer
+	PC    uint16 // program counter
+	ram   []byte // 64 KB ram
 	clock *time.Ticker
 }
-
-// Sprite Pattern Table 0x8000-0x8FFF (sprites, background & window display)
-// 0x8800-0x97FF (background and window only)
-// Object Attribute Memory (OAM) 0xFE00-0xFE9F (40 x 4B blocks each = sprite)
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
 func NewCPU() CPU {
 	c := CPU{}
+
+	c.ram = make([]byte, 1<<16)
 
 	// convert from little-endian to big-endian
 	// and load bootrom into GB memory
@@ -55,9 +53,6 @@ func NewCPU() CPU {
 		c.ram[i] = BootRom[i+1]
 		c.ram[i+1] = BootRom[i]
 	}
-
-	// 1_048_218 HZ (target is 1_048_576, diff of 0.04%)
-	c.clock = time.NewTicker(954 * time.Nanosecond)
 
 	return c
 }
@@ -69,7 +64,7 @@ func NewTestCPU() CPU {
 }
 
 // GetRAM exposes the c.ram member
-func (c *CPU) GetRAM() [1 << 16]byte {
+func (c *CPU) GetRAM() []byte {
 	return c.ram
 }
 
@@ -116,12 +111,6 @@ func (c *CPU) DecodeAndExecuteNext() {
 	}
 
 	c.PC += GetPCIncrement(op)
-}
-
-func (c *CPU) Run() {
-	for range c.clock.C {
-		c.DecodeAndExecuteNext()
-	}
 }
 
 ///// REGISTER UTILS /////

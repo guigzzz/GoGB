@@ -13,10 +13,21 @@ func init() {
 func main() {
 
 	cpu := backend.NewCPU()
-	go cpu.Run()
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
 
+	// cpu.GetRAM()[0xFF44] = 144
+
 	screenRenderer := NewScreenRenderer(ppu, 160, 144)
 	screenRenderer.startRendering()
+
+	// debug := backend.NewDebugHarness()
+
+	for {
+		cpu.DecodeAndExecuteNext()
+
+		// if cpu.PC >= 0x006a {
+		// 	debug.PrintDebug(cpu)
+		// }
+	}
 }

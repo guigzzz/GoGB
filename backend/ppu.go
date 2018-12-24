@@ -20,7 +20,7 @@ import (
 // PPU represents the pixel processing unit
 // contains references to ram sections containing video relevant data
 type PPU struct {
-	ram          [1 << 16]byte   // reference to memory shared with CPU
+	ram          []byte          // reference to memory shared with CPU
 	Image        *image.RGBA     // represents the current screen
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
@@ -237,7 +237,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) {
 }
 
 func (p *PPU) writeLY(lineNumber byte) {
-	p.ram[0xFF45] = lineNumber
+	p.ram[0xFF44] = lineNumber
 }
 
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
@@ -307,20 +307,20 @@ func (p *PPU) writeBufferToImage() {
 		}
 	}
 
-	squareSize := 10
-	height := 144 - squareSize
-	width := 160 - squareSize
+	// squareSize := 10
+	// height := 144 - squareSize
+	// width := 160 - squareSize
 
-	yPos := squarePos / width
-	xPos := squarePos % width
+	// yPos := squarePos / width
+	// xPos := squarePos % width
 
-	red := color.RGBA{255, 0, 0, 255}
-	for i := yPos; i < yPos+squareSize; i++ {
-		for j := xPos; j < xPos+squareSize; j++ {
-			p.Image.SetRGBA(j, i, red)
-		}
-	}
-	squarePos = (squarePos + 1) % (height * width)
+	// red := color.RGBA{255, 0, 0, 255}
+	// for i := yPos; i < yPos+squareSize; i++ {
+	// 	for j := xPos; j < xPos+squareSize; j++ {
+	// 		p.Image.SetRGBA(j, i, red)
+	// 	}
+	// }
+	// squarePos = (squarePos + 1) % (height * width)
 }
 
 func (p *PPU) Renderer() {
