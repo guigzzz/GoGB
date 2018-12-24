@@ -54,6 +54,16 @@ func NewCPU() CPU {
 		c.ram[i+1] = BootRom[i]
 	}
 
+	// copy Nintendo logo into 'cartridge' to get the boot to pass
+	for i := 0; i < 0x30; i++ {
+		c.ram[0x104+i] = c.ram[0xA8+i]
+	}
+
+	// get the checksum to pass
+	// need 0x19 + bytes from 0x0134-0x014D  don't add to 0x00
+	// 0x19 + 0xE7 overflows a byte and = 0
+	c.ram[0x134] = 0xE7
+
 	return c
 }
 
@@ -80,7 +90,8 @@ func (c *CPU) String() string {
 		fmt.Sprintf("A: 0x%0.2X, F: 0x%0.2X, (AF: 0x%0.4X)\n", c.reg[A], c.reg[F], c.ReadAF()) +
 		fmt.Sprintf("B: 0x%0.2X, C: 0x%0.2X, (BC: 0x%0.4X)\n", c.reg[B], c.reg[C], c.ReadBC()) +
 		fmt.Sprintf("D: 0x%0.2X, E: 0x%0.2X, (DE: 0x%0.4X)\n", c.reg[D], c.reg[E], c.ReadDE()) +
-		fmt.Sprintf("H: 0x%0.2X, L: 0x%0.2X, (HL: 0x%0.4X)\n", c.reg[H], c.reg[L], c.ReadHL()) +
+		fmt.Sprintf("H: 0x%0.2X, L: 0x%0.2X, (HL: 0x%0.4X), (HL): 0x%0.2X\n",
+			c.reg[H], c.reg[L], c.ReadHL(), c.ram[c.ReadHL()]) +
 		fmt.Sprintf("SP: 0x%0.4X, PC: 0x%0.4X\n", c.SP, c.PC) +
 		fmt.Sprintf("Z: %1b, N: %1b, H: %1b, C: %1b\n",
 			c.ReadFlag(ZFlag), c.ReadFlag(NFlag), c.ReadFlag(HFlag), c.ReadFlag(CFlag))

@@ -16,18 +16,16 @@ func main() {
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
 
-	// cpu.GetRAM()[0xFF44] = 144
+	// screenRenderer := NewScreenRenderer(ppu, 160, 144)
+	// screenRenderer.startRendering()
 
-	screenRenderer := NewScreenRenderer(ppu, 160, 144)
-	screenRenderer.startRendering()
+	debug := backend.NewDebugHarness()
 
-	// debug := backend.NewDebugHarness()
-
-	for {
+	for cpu.PC < 0x00fe {
 		cpu.DecodeAndExecuteNext()
 
-		// if cpu.PC >= 0x006a {
-		// 	debug.PrintDebug(cpu)
-		// }
+		if cpu.PC >= 0x00e6 {
+			debug.PrintDebug(cpu)
+		}
 	}
 }
