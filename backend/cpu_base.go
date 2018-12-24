@@ -2,6 +2,7 @@ package backend
 
 import (
 	"fmt"
+	"time"
 )
 
 // Register maps register "name" to index in CPU.reg
@@ -32,10 +33,11 @@ const (
 
 // CPU represents the current cpu state
 type CPU struct {
-	reg [8]byte
-	SP  uint16        // stack pointer
-	PC  uint16        // program counter
-	ram [1 << 16]byte // 64 KB ram
+	reg   [8]byte
+	SP    uint16        // stack pointer
+	PC    uint16        // program counter
+	ram   [1 << 16]byte // 64 KB ram
+	clock *time.Ticker
 }
 
 // Sprite Pattern Table 0x8000-0x8FFF (sprites, background & window display)
@@ -53,6 +55,9 @@ func NewCPU() CPU {
 		c.ram[i] = BootRom[i+1]
 		c.ram[i+1] = BootRom[i]
 	}
+
+	// 1_048_218 HZ (target is 1_048_576, diff of 0.04%)
+	c.clock = time.NewTicker(954 * time.Nanosecond)
 
 	return c
 }
@@ -111,6 +116,12 @@ func (c *CPU) DecodeAndExecuteNext() {
 	}
 
 	c.PC += GetPCIncrement(op)
+}
+
+func (c *CPU) Run() {
+	for range c.clock.C {
+		c.DecodeAndExecuteNext()
+	}
 }
 
 ///// REGISTER UTILS /////

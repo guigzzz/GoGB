@@ -11,7 +11,9 @@ func init() {
 }
 
 func main() {
+
 	cpu := backend.NewCPU()
+	go cpu.Run()
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
 
