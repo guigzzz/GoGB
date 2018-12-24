@@ -92,13 +92,17 @@ func (p *PPU) getScroll() (byte, byte) {
 
 func (p *PPU) getBackgroundPixels(lineNumber byte) [144]byte {
 
+	pixels := [144]byte{}
+	if !p.lcdControlRegisterIsBitSet(bgDisplay) {
+		return pixels
+	}
+
 	tileMap := p.getBackgroundTileMap()
 	tileData, interpretIndexAsSigned := p.getBackgroundTileData()
 
 	scrollY, scrollX := p.getScroll()
 	rowInTile := scrollY % 8
 	tileRow := (scrollY + lineNumber) / 8
-	pixels := [144]byte{}
 
 	for i := byte(0); i < 144; i++ {
 
@@ -134,12 +138,106 @@ func (p *PPU) getBackgroundPixels(lineNumber byte) [144]byte {
 	return pixels
 }
 
-func (p *PPU) getWindowPixels() {
+func (p *PPU) getWindowPosition() (byte, byte) {
+	return p.ram[0xFF4A], p.ram[0xFF4B] - 7
+}
+
+func (p *PPU) getWindowPixels(lineNumber byte) [144]byte {
+
+	pixels := [144]byte{}
+	if !p.lcdControlRegisterIsBitSet(windowDisplayEnable) {
+		return pixels
+	}
+
+	yPos, xPos := p.getWindowPosition()
+
+	tileMap := p.getWindowTileMap()
+	tileData, interpretIndexAsSigned := p.getWindowTileData()
+
+	rowInTile := yPos % 8
+	tileRow := (yPos + lineNumber) / 8
+
+	for i := byte(0); i < 144; i++ {
+
+		// compute in which background tile we fall in (in a 32 x 32 grid)
+		tileColumn := (xPos + i) / 8
+		tileIndex := tileRow*32 + tileColumn
+
+		// get the tile data index for that tile
+		tileMapIndex := tileMap[tileIndex]
+
+		// if we are using 0x8000 to 0x8FFF
+		// then 0-127 maps to 8000-87FF and 128-255 maps to 8800-8FFF
+		//
+		// if we are using the 0x8800 to 0x97FF
+		// then 0-127 maps to 9000-97FF whereas 128-255 maps to 8800-8FFF
+		//
+		// we can just flip the MSB of the data index in the 0x8800 to 0x97FF case
+		if interpretIndexAsSigned {
+			tileMapIndex ^= 0x80
+		}
+
+		// 16 bytes per tile, 8 lines of 8 pixels per tiles
+		// meaning 2 bytes per line
+		lineDataIndex := tileMapIndex*16 + 2*rowInTile
+		lineData := tileData[lineDataIndex : lineDataIndex+2]
+
+		msb := lineData[1] >> (6 - i%8)
+		lsb := lineData[0] >> (7 - i%8)
+
+		pixels[i] = mapColorToPalette(p.getBGPalette(), msb|lsb)
+	}
+
+	return pixels
 
 }
 
-func (p *PPU) getSpritePixels() {
+func (p *PPU) getSpriteData() []byte {
+	return p.ram[0x8000 : 0x8FFF+1]
+}
 
+func (p *PPU) getSpriteAttributes() []byte {
+	return p.ram[0xFE00 : 0xFE9F+1]
+}
+
+func (p *PPU) getSpritePixels(lineNumber byte) {
+
+	// Implements OAM searching and sprite rendering
+
+	// sprite data @ 8000-8FFF
+	// sprite attributes in OAM @ OAM @ FE00-FE9F
+	// OAM is divided into 40 4-byte blocks each of which corresponds to a sprite
+
+	// Byte0  Y position on the screen
+	// Byte1  X position on the screen
+	// Byte2  Pattern number 0-255 [notice that unlike tile numbers, sprite
+	// 		pattern numbers are unsigned]
+	// Byte3  Flags:
+	// 		Bit7  Priority
+	// 			Sprite is displayed in front of the window if this bit
+	// 			is set to 1. Otherwise, sprite is shown behind the
+	// 			window but in front of the background.
+	// 		Bit6  Y flip
+	// 			Sprite pattern is flipped vertically if this bit is
+	// 			set to 1.
+	// 		Bit5  X flip
+	// 			Sprite pattern is flipped horizontally if this bit is
+	// 			set to 1.
+	// 		Bit4  Palette number
+	// 			Sprite colors are taken from OBJ1PAL (FF49) if this bit is
+	// 			set to 1 and from OBJ0PAL (FF48) otherwise.
+
+	// Todo check sprite size
+	// if in 8x16 mode then pattern number of upper tile is pattern_number & 0xFE
+	// pattern number of lower tile is pattern_number | 0x01
+
+	// For each sprite in RAM, check if it has pixels that need to be drawn on that line
+	// and that we have so far drawn less than 10
+
+}
+
+func (p *PPU) writeLY(lineNumber byte) {
+	p.ram[0xFF45] = lineNumber
 }
 
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
@@ -155,13 +253,15 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 
 	for range canRenderLine.C {
 
+		p.writeLY(lineNumber)
+
 		switch {
 		case lineNumber < 144:
-			pixels := p.getBackgroundPixels(lineNumber)
+			background := p.getBackgroundPixels(lineNumber)
 			// window pixels := getWindowPixels
 			// spritePixels := getSpritePixels
 
-			for i, pixel := range pixels {
+			for i, pixel := range background {
 				p.screenBuffer[int(lineNumber)*160+i] = pixel
 			}
 			lineNumber++
