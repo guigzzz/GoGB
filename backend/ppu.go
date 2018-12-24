@@ -179,6 +179,8 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 	}
 }
 
+var squarePos int
+
 func (p *PPU) writeBufferToImage() {
 	white := color.RGBA{255, 255, 255, 255}
 	lightgray := color.RGBA{192, 192, 192, 255}
@@ -205,19 +207,20 @@ func (p *PPU) writeBufferToImage() {
 		}
 	}
 
+	squareSize := 10
+	height := 144 - squareSize
+	width := 160 - squareSize
+
+	yPos := squarePos / width
+	xPos := squarePos % width
+
 	red := color.RGBA{255, 0, 0, 255}
-	for j := 0; j < 160; j++ {
-		p.Image.SetRGBA(j, 0, red)
-		p.Image.SetRGBA(j, 1, red)
-		p.Image.SetRGBA(j, 142, red)
-		p.Image.SetRGBA(j, 143, red)
+	for i := yPos; i < yPos+squareSize; i++ {
+		for j := xPos; j < xPos+squareSize; j++ {
+			p.Image.SetRGBA(j, i, red)
+		}
 	}
-	for i := 0; i < 144; i++ {
-		p.Image.SetRGBA(0, i, red)
-		p.Image.SetRGBA(1, i, red)
-		p.Image.SetRGBA(158, i, red)
-		p.Image.SetRGBA(159, i, red)
-	}
+	squarePos = (squarePos + 1) % (height * width)
 }
 
 func (p *PPU) Renderer() {

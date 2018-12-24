@@ -110,7 +110,7 @@ func (s *ScreenRenderer) displayFrame() {
 
 	// Layout
 	bounds := nk.NkRect(0, 0, float32(width), float32(height))
-	if nk.NkBegin(s.ctx, "Demo", bounds, 0) > 0 {
+	if nk.NkBegin(s.ctx, "Demo", bounds, nk.WindowNoScrollbar) > 0 {
 		s.imageToDisplayMutex.RLock()
 
 		frameImg := rgbaTex(&s.frameTex, s.imageToDisplay)
