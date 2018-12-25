@@ -27,7 +27,7 @@ type PPU struct {
 }
 
 // NewPPU creates a new PPU object
-func NewPPU(c CPU) *PPU {
+func NewPPU(c *CPU) *PPU {
 	p := new(PPU)
 	p.ram = c.ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})

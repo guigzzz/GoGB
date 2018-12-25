@@ -65,7 +65,7 @@ func NewDebugHarness() DebugHarness {
 }
 
 // PrintDebug pretty prints debug information concerning the emulator status
-func (d *DebugHarness) PrintDebug(c CPU) {
+func (d *DebugHarness) PrintDebug(c *CPU) {
 	// b := c.ram[c.PC : c.PC+3]
 
 	var op Opcode

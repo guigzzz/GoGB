@@ -41,8 +41,8 @@ type CPU struct {
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU() CPU {
-	c := CPU{}
+func NewCPU() *CPU {
+	c := new(CPU)
 
 	c.ram = make([]byte, 1<<16)
 
@@ -66,10 +66,60 @@ func NewCPU() CPU {
 	return c
 }
 
+func NewHLECPU() *CPU {
+	c := new(CPU)
+
+	c.Writedouble(A, F, 0x01B0)
+	c.Writedouble(B, C, 0x0013)
+	c.Writedouble(D, E, 0x00D8)
+	c.Writedouble(H, L, 0x014D)
+
+	c.SP = 0xFFFE
+
+	c.ram = make([]byte, 1<<16)
+	c.ram[0xFF05] = 0x00 //    ; TIMA
+	c.ram[0xFF06] = 0x00 //    ; TMA
+	c.ram[0xFF07] = 0x00 //    ; TAC
+	c.ram[0xFF10] = 0x80 //    ; NR10
+	c.ram[0xFF11] = 0xBF //    ; NR11
+	c.ram[0xFF12] = 0xF3 //    ; NR12
+	c.ram[0xFF14] = 0xBF //    ; NR14
+	c.ram[0xFF16] = 0x3F //    ; NR21
+	c.ram[0xFF17] = 0x00 //    ; NR22
+	c.ram[0xFF19] = 0xBF //    ; NR24
+	c.ram[0xFF1A] = 0x7F //    ; NR30
+	c.ram[0xFF1B] = 0xFF //    ; NR31
+	c.ram[0xFF1C] = 0x9F //    ; NR32
+	c.ram[0xFF1E] = 0xBF //    ; NR33
+	c.ram[0xFF20] = 0xFF //    ; NR41
+	c.ram[0xFF21] = 0x00 //    ; NR42
+	c.ram[0xFF22] = 0x00 //    ; NR43
+	c.ram[0xFF23] = 0xBF //    ; NR30
+	c.ram[0xFF24] = 0x77 //    ; NR50
+	c.ram[0xFF25] = 0xF3 //    ; NR51
+	c.ram[0xFF26] = 0xF1 // -GB, $F0-SGB ; NR52
+	c.ram[0xFF40] = 0x91 //    ; LCDC
+	c.ram[0xFF42] = 0x00 //    ; SCY
+	c.ram[0xFF43] = 0x00 //    ; SCX
+	c.ram[0xFF45] = 0x00 //    ; LYC
+	c.ram[0xFF47] = 0xFC //    ; BGP
+	c.ram[0xFF48] = 0xFF //    ; OBP0
+	c.ram[0xFF49] = 0xFF //    ; OBP1
+	c.ram[0xFF4A] = 0x00 //    ; WY
+	c.ram[0xFF4B] = 0x00 //    ; WX
+	c.ram[0xFFFF] = 0x00 //    ; IE
+
+	c.PC = 0x101
+
+	return c
+}
+
 // NewTestCPU creates a barebone CPU specifically for tests
 // designed to be fast
-func NewTestCPU() CPU {
-	return CPU{}
+func NewTestCPU() *CPU {
+	c := new(CPU)
+	c.ram = make([]byte, 1<<16)
+	return c
 }
 
 // GetRAM exposes the c.ram member

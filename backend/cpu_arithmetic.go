@@ -14,8 +14,8 @@ func (c *CPU) Addn(n byte, carry bool) {
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(c.reg[A]&0xF > res&0xF, HFlag)
-	c.MaybeFlagSetter(res < c.reg[A], CFlag)
+	c.MaybeFlagSetter(n > 0 && c.reg[A]&0xF >= res&0xF, HFlag)
+	c.MaybeFlagSetter(n > 0 && c.reg[A] >= res, CFlag)
 
 	c.reg[A] = res
 }
@@ -36,12 +36,15 @@ func (c *CPU) Subn(n byte, carry bool) {
 	res := c.reg[A] - n
 	if carry && c.IsFlagSet(CFlag) { // if SBC instruction && carry flag is set
 		res--
+		c.MaybeFlagSetter(n > 0 && c.reg[A]&0xF <= res&0xF, HFlag)
+		c.MaybeFlagSetter(n > 0 && c.reg[A] <= res, CFlag)
+	} else {
+		c.MaybeFlagSetter(c.reg[A]&0xF < res&0xF, HFlag)
+		c.MaybeFlagSetter(c.reg[A] < res, CFlag)
 	}
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.SetFlag(NFlag)
-	c.MaybeFlagSetter(c.reg[A]&0xF < res&0xF, HFlag)
-	c.MaybeFlagSetter(c.reg[A] < res, CFlag)
 
 	c.reg[A] = res
 }
@@ -209,7 +212,7 @@ func (c *CPU) Dec(r Register) {
 	res := c.reg[r] - 1
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
-	c.ResetFlag(NFlag)
+	c.SetFlag(NFlag)
 	c.MaybeFlagSetter(c.reg[r]&0xF < res&0xF, HFlag)
 	// C not affected
 
@@ -223,7 +226,7 @@ func (c *CPU) DecHL() {
 	res := c.ram[HL] - 1
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
-	c.ResetFlag(NFlag)
+	c.SetFlag(NFlag)
 	c.MaybeFlagSetter(c.ram[HL]&0xF < res&0xF, HFlag)
 	// C not affected
 
@@ -237,9 +240,10 @@ func (c *CPU) AddHL16(n uint16) {
 	HL := c.ReadHL()
 	res := HL + n
 
+	// Z unaffected
 	c.ResetFlag(NFlag)
 	c.MaybeFlagSetter(HL&0xFFF > res&0xFFF, HFlag)
-	c.MaybeFlagSetter(res < HL, CFlag)
+	c.MaybeFlagSetter(HL > res, CFlag)
 
 	c.Writedouble(H, L, res)
 }
@@ -251,7 +255,7 @@ func (c *CPU) AddSP8(n byte) {
 	c.ResetFlag(ZFlag)
 	c.ResetFlag(NFlag)
 	c.MaybeFlagSetter(c.SP&0xFFF > res&0xFFF, HFlag)
-	c.MaybeFlagSetter(res < c.SP, CFlag)
+	c.MaybeFlagSetter(c.SP > res, CFlag)
 
 	c.SP = res
 }

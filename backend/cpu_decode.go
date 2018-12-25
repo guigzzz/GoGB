@@ -1,7 +1,5 @@
 package backend
 
-import "fmt"
-
 // opcode grid for reference
 // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
@@ -199,12 +197,16 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 			c.RotateRightReg(A)
 		case 2: // CPL = complement A = ~A
 			c.reg[A] = ^c.reg[A]
+			c.SetFlag(NFlag)
+			c.SetFlag(HFlag)
 		case 3: // CCF = complement carry flag = ~CFlag
 			if c.IsFlagSet(CFlag) {
 				c.ResetFlag(CFlag)
 			} else {
 				c.SetFlag(CFlag)
 			}
+			c.ResetFlag(NFlag)
+			c.ResetFlag(HFlag)
 		}
 
 	}
@@ -416,7 +418,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // DI
 			// panic("DI - Unimplemented")
-			fmt.Println("Disabling interrupts...", c.instructionCounter, c.PC)
+			// fmt.Println("Disabling interrupts...", c.instructionCounter, c.PC)
 		}
 	case 4:
 		v := PackBytes(b[2], b[1])
