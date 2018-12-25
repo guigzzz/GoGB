@@ -90,9 +90,9 @@ func (p *PPU) getScroll() (byte, byte) {
 	return p.ram[0xFF42], p.ram[0xFF43]
 }
 
-func (p *PPU) getBackgroundPixels(lineNumber byte) [144]byte {
+func (p *PPU) getBackgroundPixels(lineNumber byte) [160]byte {
 
-	pixels := [144]byte{}
+	pixels := [160]byte{}
 	if !p.lcdControlRegisterIsBitSet(bgDisplay) {
 		return pixels
 	}
@@ -101,67 +101,14 @@ func (p *PPU) getBackgroundPixels(lineNumber byte) [144]byte {
 	tileData, interpretIndexAsSigned := p.getBackgroundTileData()
 
 	scrollY, scrollX := p.getScroll()
-	rowInTile := scrollY % 8
+	rowInTile := (scrollY + lineNumber) % 8
 	tileRow := (scrollY + lineNumber) / 8
 
-	for i := byte(0); i < 144; i++ {
+	for i := byte(0); i < 160; i++ {
 
 		// compute in which background tile we fall in (in a 32 x 32 grid)
 		tileColumn := (scrollX + i) / 8
-		tileIndex := tileRow*32 + tileColumn
-
-		// get the tile data index for that tile
-		tileMapIndex := tileMap[tileIndex]
-
-		// if we are using 0x8000 to 0x8FFF
-		// then 0-127 maps to 8000-87FF and 128-255 maps to 8800-8FFF
-		//
-		// if we are using the 0x8800 to 0x97FF
-		// then 0-127 maps to 9000-97FF whereas 128-255 maps to 8800-8FFF
-		//
-		// we can just flip the MSB of the data index in the 0x8800 to 0x97FF case
-		if interpretIndexAsSigned {
-			tileMapIndex ^= 0x80
-		}
-
-		// 16 bytes per tile, 8 lines of 8 pixels per tiles
-		// meaning 2 bytes per line
-		lineDataIndex := tileMapIndex*16 + 2*rowInTile
-		lineData := tileData[lineDataIndex : lineDataIndex+2]
-
-		msb := lineData[1] >> (6 - i%8)
-		lsb := lineData[0] >> (7 - i%8)
-
-		pixels[i] = mapColorToPalette(p.getBGPalette(), msb|lsb)
-	}
-
-	return pixels
-}
-
-func (p *PPU) getWindowPosition() (byte, byte) {
-	return p.ram[0xFF4A], p.ram[0xFF4B] - 7
-}
-
-func (p *PPU) getWindowPixels(lineNumber byte) [144]byte {
-
-	pixels := [144]byte{}
-	if !p.lcdControlRegisterIsBitSet(windowDisplayEnable) {
-		return pixels
-	}
-
-	yPos, xPos := p.getWindowPosition()
-
-	tileMap := p.getWindowTileMap()
-	tileData, interpretIndexAsSigned := p.getWindowTileData()
-
-	rowInTile := yPos % 8
-	tileRow := (yPos + lineNumber) / 8
-
-	for i := byte(0); i < 144; i++ {
-
-		// compute in which background tile we fall in (in a 32 x 32 grid)
-		tileColumn := (xPos + i) / 8
-		tileIndex := tileRow*32 + tileColumn
+		tileIndex := uint(tileRow)*32 + uint(tileColumn)
 
 		// get the tile data index for that tile
 		tileMapIndex := tileMap[tileIndex]
@@ -182,8 +129,64 @@ func (p *PPU) getWindowPixels(lineNumber byte) [144]byte {
 		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
 		lineData := tileData[lineDataIndex : lineDataIndex+2]
 
-		msb := (lineData[1] >> (7 - byte(i)%8)) & 1
-		lsb := (lineData[0] >> (7 - byte(i)%8)) & 1
+		pixelInLine := (scrollX + i) % 8
+		msb := (lineData[1] >> (7 - pixelInLine)) & 1
+		lsb := (lineData[0] >> (7 - pixelInLine)) & 1
+
+		colorCode := (msb << 1) | lsb
+
+		pixels[i] = mapColorToPalette(p.getBGPalette(), colorCode)
+	}
+
+	return pixels
+}
+
+func (p *PPU) getWindowPosition() (byte, byte) {
+	return p.ram[0xFF4A], p.ram[0xFF4B] - 7
+}
+
+func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
+
+	pixels := [160]byte{}
+	if !p.lcdControlRegisterIsBitSet(windowDisplayEnable) {
+		return pixels
+	}
+
+	yPos, xPos := p.getWindowPosition()
+
+	tileMap := p.getWindowTileMap()
+	tileData, interpretIndexAsSigned := p.getWindowTileData()
+
+	rowInTile := yPos % 8
+	tileRow := (yPos + lineNumber) / 8
+
+	for i := byte(0); i < 160; i++ {
+
+		// compute in which background tile we fall in (in a 32 x 32 grid)
+		tileColumn := (xPos + i) / 8
+		tileIndex := uint(tileRow)*32 + uint(tileColumn)
+
+		// get the tile data index for that tile
+		tileMapIndex := tileMap[tileIndex]
+
+		// if we are using 0x8000 to 0x8FFF
+		// then 0-127 maps to 8000-87FF and 128-255 maps to 8800-8FFF
+		//
+		// if we are using the 0x8800 to 0x97FF
+		// then 0-127 maps to 9000-97FF whereas 128-255 maps to 8800-8FFF
+		//
+		// we can just flip the MSB of the data index in the 0x8800 to 0x97FF case
+		if interpretIndexAsSigned {
+			tileMapIndex ^= 0x80
+		}
+
+		// 16 bytes per tile, 8 lines of 8 pixels per tiles
+		// meaning 2 bytes per line
+		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
+		lineData := tileData[lineDataIndex : lineDataIndex+2]
+
+		msb := (lineData[1] >> (7 - (xPos+i)%8)) & 1
+		lsb := (lineData[0] >> (7 - (xPos+i)%8)) & 1
 
 		colorCode := (msb << 1) | lsb
 

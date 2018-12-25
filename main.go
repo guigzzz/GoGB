@@ -2,9 +2,8 @@ package main
 
 import (
 	"fmt"
-	"image/jpeg"
-	"os"
 	"runtime"
+	"time"
 
 	"github.com/guigzzz/GoGB/backend"
 )
@@ -19,21 +18,22 @@ func main() {
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
 
-	// screenRenderer := NewScreenRenderer(ppu, 160, 144)
+	screenRenderer := NewScreenRenderer(ppu, 200, 200)
 
-	// go func() {
-	fmt.Println("[CPU] Booting...")
-	for cpu.PC != 0x0100 {
-		cpu.DecodeAndExecuteNext()
-	}
-	fmt.Println("cpu booted")
-	// }()
-	// screenRenderer.startRendering()
+	go func() {
+		fmt.Println("[CPU] Booting...")
+		for cpu.PC != 0x0100 {
+			time.Sleep(2)
+			cpu.DecodeAndExecuteNext()
+		}
+		fmt.Println("cpu booted")
+	}()
+	screenRenderer.startRendering()
 
-	f, err := os.Create("img.jpg")
-	if err != nil {
-		panic(err)
-	}
-	defer f.Close()
-	jpeg.Encode(f, ppu.DumpBackground(), nil)
+	// f, err := os.Create("img.jpg")
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// defer f.Close()
+	// jpeg.Encode(f, ppu.Image, nil)
 }
