@@ -24,7 +24,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		case 0: // NOP
 			// panic("No Op - Unimplemented")
 		case 1: // STOP
-			panic("STOP - Unimplemented")
+			fmt.Println("Warning: Got STOP instruction, this is probably a bug")
 		case 2: // JR NZ,r8
 			c.JumpRelativeNZ(b[1])
 		case 3: // JR NC,r8
@@ -511,7 +511,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // EI
-			panic("EI - Unimplemented")
+			fmt.Println("Warning: EI - Unimplemented - Noop for now")
 		}
 	case 12:
 		v := PackBytes(b[2], b[1])

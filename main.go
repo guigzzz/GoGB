@@ -14,7 +14,7 @@ func init() {
 
 var files = []string{
 	"rom/cpu_instrs/individual/01-special.gb",            // 0 FAIL #6
-	"rom/cpu_instrs/individual/02-interrupts.gb",         // 1 CRASH
+	"rom/cpu_instrs/individual/02-interrupts.gb",         // 1 FAIL #2
 	"rom/cpu_instrs/individual/03-op sp,hl.gb",           // 2 HANG/INF LOOP
 	"rom/cpu_instrs/individual/04-op r,imm.gb",           // 3 FAIL
 	"rom/cpu_instrs/individual/05-op rp.gb",              // 4 PASS
@@ -30,7 +30,7 @@ func main() {
 
 	cpu := backend.NewHLECPU()
 
-	data, err := ioutil.ReadFile(files[8])
+	data, err := ioutil.ReadFile(files[1])
 	if err != nil {
 		panic(err)
 	}
