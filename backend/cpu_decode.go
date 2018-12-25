@@ -113,7 +113,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 8:
 		switch oprow {
 		case 0: // LD (a16),SP
-			panic("LD (a16),SP - Unimplemented")
+			c.StoreSPNN(PackBytes(b[1], b[0]))
 		case 1: // JR r8
 			c.JumpRelative(b[1])
 		case 2: // JR Z,r8

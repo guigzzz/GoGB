@@ -48,3 +48,9 @@ func (c *CPU) LoadHLSPN(n byte) {
 
 	c.Writedouble(H, L, v)
 }
+
+// StoreSPNN implements LD (a16), SP
+func (c *CPU) StoreSPNN(v uint16) {
+	c.ram[v] = byte(c.SP & 0xFF)
+	c.ram[v+1] = byte(c.SP >> 8)
+}

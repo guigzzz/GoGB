@@ -63,3 +63,12 @@ func TestLDHL(t *testing.T) {
 	assert.Equal(t, c.ReadHL(), uint16(0xFFFA))
 	assertFlagsSet(t, c.reg[F])
 }
+
+func TestStoreSPNN(t *testing.T) {
+	c := NewTestCPU()
+	c.SP = 0xFFF8
+	c.StoreSPNN(0xC100)
+
+	assert.Equal(t, c.ram[0xC100], byte(0xF8))
+	assert.Equal(t, c.ram[0xC101], byte(0xFF))
+}
