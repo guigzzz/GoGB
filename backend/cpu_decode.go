@@ -1,5 +1,7 @@
 package backend
 
+import "fmt"
+
 // opcode grid for reference
 // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
@@ -104,7 +106,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		case 1: // RLA
 			c.RotateLeftReg(A)
 		case 2: // DAA
-			panic("Decimal Adjust - Unimplemented")
+			fmt.Println("Warning: Decimal Adjust - Unimplemented - Noop for now")
 		case 3: // SCF
 			c.ResetFlag(NFlag)
 			c.ResetFlag(HFlag)
@@ -395,6 +397,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 3: // POP AF
 			c.PopReg(F)
 			c.PopReg(A)
+			c.reg[F] &= 0xF0
 		}
 	case 2:
 		switch oprow {
