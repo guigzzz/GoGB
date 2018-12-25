@@ -2,7 +2,6 @@ package backend
 
 import (
 	"fmt"
-	"time"
 )
 
 // Register maps register "name" to index in CPU.reg
@@ -33,11 +32,11 @@ const (
 
 // CPU represents the current cpu state
 type CPU struct {
-	reg   [8]byte
-	SP    uint16 // stack pointer
-	PC    uint16 // program counter
-	ram   []byte // 64 KB ram
-	clock *time.Ticker
+	reg                [8]byte
+	SP                 uint16 // stack pointer
+	PC                 uint16 // program counter
+	ram                []byte // 64 KB ram
+	instructionCounter uint
 }
 
 // NewCPU creates a new cpu struct
@@ -122,6 +121,7 @@ func (c *CPU) DecodeAndExecuteNext() {
 	}
 
 	c.PC += GetPCIncrement(op)
+	c.instructionCounter++
 }
 
 ///// REGISTER UTILS /////
@@ -229,7 +229,7 @@ func GetPCIncrement(op byte) uint16 {
 	case 0xfe: //{CP d8  0xfe 2 [8]}
 		return 2
 	case 0xe2: //{LD (C) A 0xe2 2 [8]}
-		return 2
+		return 1
 	case 0xe6: //{AND d8  0xe6 2 [8]}
 		return 2
 	case 0x31: //{LD SP d16 0x31 3 [12]}
@@ -297,7 +297,7 @@ func GetPCIncrement(op byte) uint16 {
 	case 0xd8: //{RET C  0xd8 1 [20]}
 		return 0
 	case 0xf2: //{LD A (C) 0xf2 2 [8]}
-		return 2
+		return 1
 	case 0xc3: //{JP a16  0xc3 3 [16]}
 		return 0
 	case 0xc8: //{RET Z  0xc8 1 [20]}

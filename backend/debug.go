@@ -77,8 +77,11 @@ func (d *DebugHarness) PrintDebug(c CPU) {
 
 	// fmt.Sprintf("b: %6X, ", b),
 
-	fmt.Println("Instruction:", op.String(),
+	fmt.Println("Instruction:", c.instructionCounter, op.String(),
 		fmt.Sprintf("[Length: %v, Cycles: %v]", op.Length, op.Cycles[0]))
+	if op.Length == 2 {
+		fmt.Printf("Value: 0x%0.2X\n", c.GetRAM()[c.PC+1])
+	}
 	fmt.Println("LY:", c.ram[0xFF44])
 	fmt.Println(c.String())
 }

@@ -281,8 +281,6 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 	}
 }
 
-// var squarePos int
-
 func getPixelColor(value byte) color.RGBA {
 	white := color.RGBA{255, 255, 255, 255}
 	lightgray := color.RGBA{192, 192, 192, 255}
@@ -368,6 +366,19 @@ func (p *PPU) DumpBackground() image.Image {
 			}
 
 		}
+	}
+
+	scrollY, scrollX := p.getScroll()
+	// var scrollY, scrollX byte = 0, 0
+
+	red := color.RGBA{255, 0, 0, 255}
+	for i := byte(0); i < 160; i++ {
+		image.SetRGBA(int(scrollX+i), int(scrollY), red)
+		image.SetRGBA(int(scrollX+i), int(scrollY+143), red)
+	}
+	for j := byte(0); j < 144; j++ {
+		image.SetRGBA(int(scrollX), int(scrollY+j), red)
+		image.SetRGBA(int(scrollX+159), int(scrollY+j), red)
 	}
 
 	return image
