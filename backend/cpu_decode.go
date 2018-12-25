@@ -485,7 +485,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1: // RETI
 			panic("RETI - Unimplemented")
 		case 2: // JP (HL)
-			c.Jump(uint16(c.ram[c.ReadHL()]))
+			c.Jump(uint16(c.ReadHL()))
 		case 3: // LD SP,HL
 			c.SP = c.ReadHL()
 		}

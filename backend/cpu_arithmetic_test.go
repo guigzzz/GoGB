@@ -415,6 +415,15 @@ func TestResHL(t *testing.T) {
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0xF7))
 }
 
+func TestAddSPN(t *testing.T) {
+	c := NewTestCPU()
+	c.SP = 0xFFF8
+
+	c.AddSP8(2)
+	assert.Equal(t, c.SP, uint16(0xFFFA))
+	assertFlagsSet(t, c.reg[F])
+}
+
 func assertFlagsSet(t *testing.T, actualFlag byte, expectedAssertedFlags ...Flag) {
 	if len(expectedAssertedFlags) == 0 {
 		assert.Equal(t, actualFlag, byte(0))

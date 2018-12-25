@@ -31,7 +31,7 @@ func main() {
 
 	go func() {
 		for {
-			debug.PrintDebug(cpu)
+			// debug.PrintDebug(cpu)
 			cpu.DecodeAndExecuteNext()
 
 			if cpu.PC < 0x0100 {
