@@ -1,5 +1,7 @@
 package backend
 
+import "fmt"
+
 // opcode grid for reference
 // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
@@ -413,7 +415,8 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // DI
-			panic("DI - Unimplemented")
+			// panic("DI - Unimplemented")
+			fmt.Println("Disabling interrupts...", c.instructionCounter, c.PC)
 		}
 	case 4:
 		v := PackBytes(b[2], b[1])

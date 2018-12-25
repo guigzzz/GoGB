@@ -61,7 +61,7 @@ func NewCPU() CPU {
 	// get the checksum to pass
 	// need 0x19 + bytes from 0x0134-0x014D to add to 0x00
 	// 0x19 + 0xE7 overflows a byte and = 0
-	c.ram[0x134] = 0xE7
+	c.ram[0x014D] = 0xE7
 
 	return c
 }

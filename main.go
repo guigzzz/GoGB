@@ -2,8 +2,8 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
 	"runtime"
-	"time"
 
 	"github.com/guigzzz/GoGB/backend"
 )
@@ -15,25 +15,28 @@ func init() {
 func main() {
 
 	cpu := backend.NewCPU()
+
+	data, err := ioutil.ReadFile("rom/cpu_instrs/individual/09-op r,r.gb")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(len(data))
+
+	cpu.LoadToRAM(data)
+	cpu.PC = 0x0100
+
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
 
 	screenRenderer := NewScreenRenderer(ppu, 200, 200)
 
+	// debug := backend.NewDebugHarness()
+
 	go func() {
-		fmt.Println("[CPU] Booting...")
-		for cpu.PC != 0x0100 {
-			time.Sleep(2)
+		for {
 			cpu.DecodeAndExecuteNext()
 		}
-		fmt.Println("cpu booted")
 	}()
 	screenRenderer.startRendering()
-
-	// f, err := os.Create("img.jpg")
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// defer f.Close()
-	// jpeg.Encode(f, ppu.Image, nil)
 }

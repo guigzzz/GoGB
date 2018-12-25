@@ -40,6 +40,8 @@ func (c *CPU) Jump(v uint16) {
 func (c *CPU) JumpNZ(target uint16) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Jump(target)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -47,6 +49,8 @@ func (c *CPU) JumpNZ(target uint16) {
 func (c *CPU) JumpZ(target uint16) {
 	if c.IsFlagSet(ZFlag) {
 		c.Jump(target)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -54,6 +58,8 @@ func (c *CPU) JumpZ(target uint16) {
 func (c *CPU) JumpNC(target uint16) {
 	if !c.IsFlagSet(CFlag) {
 		c.Jump(target)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -61,6 +67,8 @@ func (c *CPU) JumpNC(target uint16) {
 func (c *CPU) JumpC(target uint16) {
 	if c.IsFlagSet(CFlag) {
 		c.Jump(target)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -117,6 +125,8 @@ func (c *CPU) Ret() {
 func (c *CPU) RetNZ() {
 	if !c.IsFlagSet(ZFlag) {
 		c.Ret()
+	} else {
+		c.PC++
 	}
 }
 
@@ -124,6 +134,8 @@ func (c *CPU) RetNZ() {
 func (c *CPU) RetZ() {
 	if c.IsFlagSet(ZFlag) {
 		c.Ret()
+	} else {
+		c.PC++
 	}
 }
 
@@ -131,6 +143,8 @@ func (c *CPU) RetZ() {
 func (c *CPU) RetNC() {
 	if !c.IsFlagSet(CFlag) {
 		c.Ret()
+	} else {
+		c.PC++
 	}
 }
 
@@ -138,6 +152,8 @@ func (c *CPU) RetNC() {
 func (c *CPU) RetC() {
 	if c.IsFlagSet(CFlag) {
 		c.Ret()
+	} else {
+		c.PC++
 	}
 }
 
@@ -156,6 +172,8 @@ func (c *CPU) Call(v uint16) {
 func (c *CPU) CallNZ(v uint16) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Call(v)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -163,6 +181,8 @@ func (c *CPU) CallNZ(v uint16) {
 func (c *CPU) CallZ(v uint16) {
 	if c.IsFlagSet(ZFlag) {
 		c.Call(v)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -170,6 +190,8 @@ func (c *CPU) CallZ(v uint16) {
 func (c *CPU) CallNC(v uint16) {
 	if !c.IsFlagSet(CFlag) {
 		c.Call(v)
+	} else {
+		c.PC += 3
 	}
 }
 
@@ -177,6 +199,8 @@ func (c *CPU) CallNC(v uint16) {
 func (c *CPU) CallC(v uint16) {
 	if c.IsFlagSet(CFlag) {
 		c.Call(v)
+	} else {
+		c.PC += 3
 	}
 }
 

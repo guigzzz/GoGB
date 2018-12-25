@@ -82,6 +82,10 @@ func (d *DebugHarness) PrintDebug(c CPU) {
 	if op.Length == 2 {
 		fmt.Printf("Value: 0x%0.2X\n", c.GetRAM()[c.PC+1])
 	}
+	if op.Length == 3 {
+		fmt.Printf("Value: 0x%0.2X%0.2X\n",
+			c.GetRAM()[c.PC+1], c.GetRAM()[c.PC+2])
+	}
 	fmt.Println("LY:", c.ram[0xFF44])
 	fmt.Println(c.String())
 }
