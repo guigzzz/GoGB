@@ -339,3 +339,41 @@ func (c *CPU) SetHL(bitnum byte) {
 	HL := c.ReadHL()
 	c.ram[HL] |= 1 << bitnum
 }
+
+/////////
+// DAA //
+/////////
+
+func (c *CPU) DAA() {
+
+	v := uint16(c.reg[A])
+	if c.IsFlagSet(NFlag) {
+		// previous op was subtraction
+
+		if c.IsFlagSet(HFlag) {
+			v = (v - 0x6) & 0xFF
+		}
+
+		if c.IsFlagSet(CFlag) {
+			v -= 0x60
+		}
+
+	} else {
+		// previous op was addition
+
+		if c.IsFlagSet(HFlag) || v&0xF > 0x9 {
+			v += 0x6
+		}
+		if c.IsFlagSet(CFlag) || v > 0x9F {
+			v += 0x60
+		}
+
+	}
+
+	c.MaybeFlagSetter(v&0xFF == 0, ZFlag)
+	// N unaffected
+	c.ResetFlag(HFlag)
+	c.MaybeFlagSetter(v&0x100 == 0x100, CFlag)
+
+	c.reg[A] = byte(v)
+}

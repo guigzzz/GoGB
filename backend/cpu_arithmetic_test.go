@@ -424,6 +424,25 @@ func TestAddSPN(t *testing.T) {
 	assertFlagsSet(t, c.reg[F])
 }
 
+func TestDAA(t *testing.T) {
+	c := NewTestCPU()
+	c.reg[A] = 0x45
+	c.reg[B] = 0x38
+
+	c.AddReg(B, false)
+	assert.Equal(t, c.reg[A], byte(0x7D))
+	assertFlagsSet(t, c.reg[F])
+	c.DAA()
+	assert.Equal(t, c.reg[A], byte(0x83))
+	assertFlagsSet(t, c.reg[F])
+
+	c.SubReg(B, false)
+	assert.Equal(t, c.reg[A], byte(0x4B))
+	assertFlagsSet(t, c.reg[F], NFlag, HFlag)
+	c.DAA()
+	assert.Equal(t, c.reg[A], byte(0x45))
+}
+
 func assertFlagsSet(t *testing.T, actualFlag byte, expectedAssertedFlags ...Flag) {
 	if len(expectedAssertedFlags) == 0 {
 		assert.Equal(t, actualFlag, byte(0))

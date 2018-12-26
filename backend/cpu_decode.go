@@ -108,7 +108,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 			c.RotateLeftReg(A)
 			c.ResetFlag(ZFlag)
 		case 2: // DAA
-			fmt.Println("Warning: Decimal Adjust - Unimplemented - Noop for now")
+			c.DAA()
 		case 3: // SCF
 			c.ResetFlag(NFlag)
 			c.ResetFlag(HFlag)
