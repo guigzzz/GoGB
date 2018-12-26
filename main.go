@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"runtime"
 
@@ -21,16 +20,16 @@ var files = []string{
 	"rom/cpu_instrs/individual/06-ld r,r.gb",             // 5 PASS
 	"rom/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb", // 6 CRASH
 	"rom/cpu_instrs/individual/08-misc instrs.gb",        // 7 Goes to Noop
-	"rom/cpu_instrs/individual/09-op r,r.gb",             // 8 FAIL
+	"rom/cpu_instrs/individual/09-op r,r.gb",             // 8 PASS
 	"rom/cpu_instrs/individual/10-bit ops.gb",            // 9 PASS
-	"rom/cpu_instrs/individual/11-op a,(hl).gb",          // 10 CRASH
+	"rom/cpu_instrs/individual/11-op a,(hl).gb",          // 10 FAIL
 }
 
 func main() {
 
 	cpu := backend.NewHLECPU()
 
-	data, err := ioutil.ReadFile(files[1])
+	data, err := ioutil.ReadFile(files[8])
 	if err != nil {
 		panic(err)
 	}
@@ -41,19 +40,30 @@ func main() {
 
 	screenRenderer := NewScreenRenderer(ppu, 200, 200)
 
-	debug := backend.NewDebugHarness()
+	// debug := backend.NewDebugHarness()
 
 	go func() {
 		for {
-			// debug.PrintDebug(cpu)
+			// debug.PrintDebugShort(cpu)
+			// debug.RecordNextExercisedOp(cpu)
 			cpu.DecodeAndExecuteNext()
 
-			if cpu.PC < 0x0100 {
-				fmt.Println("PC < 0x0100. Test failed?")
-				break
-			}
+			// if cpu.PC == 0xCC5F { // 5
+			// 	break
+			// }
+			// if cpu.PC == 0xCB31 { // 4
+			// 	break
+			// }
+			// if cpu.PC == 0xCF58 { // 9
+			// 	break
+			// }
+			// if cpu.PC == 0xCB35 { // 3 failure
+			// 	break
+			// }
 		}
-		debug.PrintDebug(cpu)
+		// debug.GetExercicedOpSummary()
 	}()
 	screenRenderer.startRendering()
+
+	// debug.GetExercicedOpSummary()
 }

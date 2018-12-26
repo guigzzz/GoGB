@@ -209,6 +209,7 @@ func (c *CPU) CallC(v uint16) {
 // Rst restart cpu, v can only be:
 // 0x00, 0x08, 0x10, 0x18, 0x20, 0x28, 0x30, 0x38
 func (c *CPU) Rst(v byte) {
+	c.PC++
 	c.pushPC()
 	c.PC = uint16(v)
 }

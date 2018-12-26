@@ -33,8 +33,9 @@ func (op *Opcode) String() string {
 
 // DebugHarness contains all the necessary data for debugging the emulator
 type DebugHarness struct {
-	Unprefixed map[byte]Opcode
-	Cbprefixed map[byte]Opcode
+	Unprefixed   map[byte]Opcode
+	Cbprefixed   map[byte]Opcode
+	ExercisedOps map[string]uint
 }
 
 // NewDebugHarness creates a new DebugHarness object
@@ -60,6 +61,8 @@ func NewDebugHarness() DebugHarness {
 		}
 		o.Cbprefixed[byte(a)] = v
 	}
+
+	o.ExercisedOps = make(map[string]uint)
 
 	return o
 }
@@ -88,6 +91,47 @@ func (d *DebugHarness) PrintDebug(c *CPU) {
 	}
 	fmt.Println("LY:", c.ram[0xFF44])
 	fmt.Println(c.String())
+}
+
+func (d *DebugHarness) PrintDebugShort(c *CPU) {
+	var op Opcode
+	if c.ram[c.PC] == 0xCB {
+		op = d.Cbprefixed[c.ram[c.PC+1]]
+	} else {
+		op = d.Unprefixed[c.ram[c.PC]]
+	}
+
+	fmt.Printf("%v | %s | PC: 0x%0.4X\n", c.instructionCounter, op.String(), c.PC)
+}
+
+func (d *DebugHarness) RecordNextExercisedOp(c *CPU) {
+	var op Opcode
+	if c.ram[c.PC] == 0xCB {
+		op = d.Cbprefixed[c.ram[c.PC+1]]
+	} else {
+		op = d.Unprefixed[c.ram[c.PC]]
+	}
+
+	if _, ok := d.ExercisedOps[op.String()]; ok {
+		d.ExercisedOps[op.String()]++
+	} else {
+		d.ExercisedOps[op.String()] = 1
+	}
+}
+
+func (d *DebugHarness) GetExercicedOpSummary() {
+	// for k, v := range d.ExercisedOps {
+	// 	fmt.Println(k, v)
+	// }
+	fmt.Println("Instructions not exerciced:")
+	for _, v := range d.Unprefixed {
+		if _, ok := d.ExercisedOps[v.String()]; ok {
+			fmt.Println(v.String())
+		}
+	}
+	// for _, v := range d.Unprefixed {
+	// 	fmt.Println(v.String())
+	// }
 }
 
 func readOpcodesJSON(filename string) map[string]map[string]Opcode {

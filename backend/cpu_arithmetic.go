@@ -7,17 +7,24 @@ package backend
 // Addn performs A += n where n is an 8 bit number
 func (c *CPU) Addn(n byte, carry bool) {
 
+	carry = carry && c.IsFlagSet(CFlag)
 	res := c.reg[A] + n
-	if carry && c.IsFlagSet(CFlag) { // if ADC instruction && carry flag is set
-		res++
-	}
-
-	c.MaybeFlagSetter(res == 0, ZFlag)
-	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(n > 0 && c.reg[A]&0xF >= res&0xF, HFlag)
+	c.MaybeFlagSetter(c.reg[A]&0xF+n&0xF > 0xF, HFlag)
 	c.MaybeFlagSetter(n > 0 && c.reg[A] >= res, CFlag)
 
 	c.reg[A] = res
+	if carry {
+		if c.reg[A]&0xF == 0xF {
+			c.SetFlag(HFlag)
+		}
+		if c.reg[A] == 0xFF {
+			c.SetFlag(CFlag)
+		}
+		c.reg[A]++
+	}
+
+	c.MaybeFlagSetter(c.reg[A] == 0, ZFlag)
+	c.ResetFlag(NFlag)
 }
 
 // AddHL performs A += (HL) where (HL) is the 8 bit number stored @ (HL)
@@ -33,20 +40,25 @@ func (c *CPU) AddReg(src Register, carry bool) {
 
 // Subn performs A -= n where n is an 8 bit number
 func (c *CPU) Subn(n byte, carry bool) {
-	res := c.reg[A] - n
-	if carry && c.IsFlagSet(CFlag) { // if SBC instruction && carry flag is set
-		res--
-		c.MaybeFlagSetter(n > 0 && c.reg[A]&0xF <= res&0xF, HFlag)
-		c.MaybeFlagSetter(n > 0 && c.reg[A] <= res, CFlag)
-	} else {
-		c.MaybeFlagSetter(c.reg[A]&0xF < res&0xF, HFlag)
-		c.MaybeFlagSetter(c.reg[A] < res, CFlag)
+
+	carry = carry && c.IsFlagSet(CFlag)
+	c.MaybeFlagSetter(c.reg[A]&0xF < n&0xF, HFlag)
+	c.MaybeFlagSetter(c.reg[A] < n, CFlag)
+
+	c.reg[A] -= n
+
+	if carry {
+		if c.reg[A]&0xF == 0 {
+			c.SetFlag(HFlag)
+		}
+		if c.reg[A] == 0 {
+			c.SetFlag(CFlag)
+		}
+		c.reg[A]--
 	}
 
-	c.MaybeFlagSetter(res == 0, ZFlag)
+	c.MaybeFlagSetter(c.reg[A] == 0, ZFlag)
 	c.SetFlag(NFlag)
-
-	c.reg[A] = res
 }
 
 // SubHL performs A -= (HL) where (HL) is the 8 bit number pointed to by HL
@@ -66,8 +78,8 @@ func (c *CPU) Cpn(n byte) {
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.SetFlag(NFlag)
-	c.MaybeFlagSetter(c.reg[A]&0xF < res&0xF, HFlag)
-	c.MaybeFlagSetter(c.reg[A] < res, CFlag)
+	c.MaybeFlagSetter(c.reg[A]&0xF < n&0xF, HFlag)
+	c.MaybeFlagSetter(c.reg[A] < n, CFlag)
 }
 
 // CpHL performs A - (HL)
@@ -250,14 +262,19 @@ func (c *CPU) AddHL16(n uint16) {
 
 func (c *CPU) AddSP8(n byte) {
 
-	res := c.SP + uint16(n)
+	flagV := c.SP + uint16(n)
 
 	c.ResetFlag(ZFlag)
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(c.SP&0xFFF > res&0xFFF, HFlag)
-	c.MaybeFlagSetter(c.SP > res, CFlag)
+	c.MaybeFlagSetter(c.SP&0xF > flagV&0xF, HFlag)
+	c.MaybeFlagSetter(c.SP&0xFF > flagV&0xFF, CFlag)
 
-	c.SP = res
+	sv := int8(n)
+	if sv < 0 {
+		c.SP -= uint16(-sv)
+	} else {
+		c.SP += uint16(sv)
+	}
 }
 
 func (c *CPU) IncRegs(h, l Register) {

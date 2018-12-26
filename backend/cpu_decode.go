@@ -103,8 +103,10 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		switch oprow {
 		case 0: // RLCA
 			c.RotateLeftCReg(A)
+			c.ResetFlag(ZFlag)
 		case 1: // RLA
 			c.RotateLeftReg(A)
+			c.ResetFlag(ZFlag)
 		case 2: // DAA
 			fmt.Println("Warning: Decimal Adjust - Unimplemented - Noop for now")
 		case 3: // SCF
@@ -195,8 +197,10 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		switch oprow {
 		case 0: // RRCA = RRC A
 			c.RotateRightCReg(A)
+			c.ResetFlag(ZFlag)
 		case 1: // RRA = RR A
 			c.RotateRightReg(A)
+			c.ResetFlag(ZFlag)
 		case 2: // CPL = complement A = ~A
 			c.reg[A] = ^c.reg[A]
 			c.SetFlag(NFlag)
@@ -488,7 +492,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1: // RETI
 			panic("RETI - Unimplemented")
 		case 2: // JP (HL)
-			c.Jump(uint16(c.ReadHL()))
+			c.Jump(c.ReadHL())
 		case 3: // LD SP,HL
 			c.SP = c.ReadHL()
 		}
