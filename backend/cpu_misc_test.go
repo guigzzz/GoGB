@@ -48,3 +48,47 @@ func TestStack(t *testing.T) {
 
 	assert.Equal(t, c.popPC(), uint16(0x0110))
 }
+
+func TestRet(t *testing.T) {
+	c := NewTestCPU()
+
+	c.PC = 0x100
+	c.pushPC()
+
+	c.PC = 0x110
+	c.RetZ()
+	assert.Equal(t, c.PC, uint16(0x111))
+	c.RetNZ()
+	assert.Equal(t, c.PC, uint16(0x100))
+
+	c.SetFlag(CFlag)
+	c.PC = 0x200
+	c.pushPC()
+
+	c.PC = 0x300
+	c.RetNC()
+	assert.Equal(t, c.PC, uint16(0x301))
+	c.RetC()
+	assert.Equal(t, c.PC, uint16(0x200))
+}
+
+func TestCall(t *testing.T) {
+	c := NewTestCPU()
+	c.SP = 0xFFFE
+	c.PC = 0x100
+
+	c.Call(0x200)
+	assert.Equal(t, c.PC, uint16(0x200))
+	assert.Equal(t, c.ram[c.SP], byte(0x03))
+	assert.Equal(t, c.ram[c.SP+1], byte(0x1))
+
+	c.SetFlag(ZFlag)
+	c.CallNZ(0x300)
+	assert.Equal(t, c.PC, uint16(0x203))
+	c.CallC(0x400)
+	assert.Equal(t, c.PC, uint16(0x206))
+	c.CallZ(0x300)
+	assert.Equal(t, c.PC, uint16(0x300))
+	assert.Equal(t, c.ram[c.SP], byte(0x09))
+	assert.Equal(t, c.ram[c.SP+1], byte(0x2))
+}
