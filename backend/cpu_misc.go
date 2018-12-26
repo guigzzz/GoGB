@@ -2,31 +2,36 @@ package backend
 
 ///// PUSH & POP /////
 
-func (c *CPU) push(n byte) {
+func (c *CPU) push2(h, l byte) {
 	c.SP--
-	c.ram[c.SP] = n
+	c.ram[c.SP] = h
+	c.SP--
+	c.ram[c.SP] = l
 }
 
-func (c *CPU) pop() byte {
-	ret := c.ram[c.SP]
+func (c *CPU) pop2() (byte, byte) {
+	l := c.ram[c.SP]
 	c.SP++
-	return ret
+	h := c.ram[c.SP]
+	c.SP++
+	return h, l
 }
 
-// PushReg register value to stack
-func (c *CPU) PushReg(r Register) {
-	c.push(c.reg[r])
-}
-
-// PopReg pop value from stack into register
-func (c *CPU) PopReg(r Register) {
-	c.reg[r] = c.pop()
-}
-
-// pushPC push PCh to (SP-1) and PCl to (SP-2)
 func (c *CPU) pushPC() {
-	c.push(byte(c.PC & 0xFF00 >> 8))
-	c.push(byte(c.PC & 0xFF))
+	c.push2(byte(c.PC>>8), byte(c.PC&0xFF))
+}
+
+func (c *CPU) popPC() uint16 {
+	top, bottom := c.pop2()
+	return PackBytes(top, bottom)
+}
+
+func (c *CPU) pushDouble(h, l Register) {
+	c.push2(c.reg[h], c.reg[l])
+}
+
+func (c *CPU) popDouble(h, l Register) {
+	c.reg[h], c.reg[l] = c.pop2()
 }
 
 ///// JUMP /////
@@ -116,9 +121,7 @@ func (c *CPU) JumpRelativeC(v byte) {
 
 // Ret pop two bytes from stack, build address and jump to that address
 func (c *CPU) Ret() {
-	v := c.pop()
-	addr := PackBytes(c.pop(), v)
-	c.Jump(addr)
+	c.PC = c.popPC()
 }
 
 // RetNZ return if not zero

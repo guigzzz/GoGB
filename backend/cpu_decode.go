@@ -390,17 +390,13 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 1:
 		switch oprow {
 		case 0: // POP BC
-			c.PopReg(C)
-			c.PopReg(B)
+			c.popDouble(B, C)
 		case 1: // POP DE
-			c.PopReg(E)
-			c.PopReg(D)
+			c.popDouble(D, E)
 		case 2: // POP HL
-			c.PopReg(L)
-			c.PopReg(H)
+			c.popDouble(H, L)
 		case 3: // POP AF
-			c.PopReg(F)
-			c.PopReg(A)
+			c.popDouble(A, F)
 			c.reg[F] &= 0xF0
 		}
 	case 2:
@@ -440,17 +436,13 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 5:
 		switch oprow {
 		case 0: // PUSH BC
-			c.PushReg(B)
-			c.PushReg(C)
+			c.pushDouble(B, C)
 		case 1: // PUSH DE
-			c.PushReg(D)
-			c.PushReg(E)
+			c.pushDouble(D, E)
 		case 2: // PUSH HL
-			c.PushReg(H)
-			c.PushReg(L)
+			c.pushDouble(H, L)
 		case 3: // PUSH AF
-			c.PushReg(A)
-			c.PushReg(F)
+			c.pushDouble(A, F)
 		}
 	case 6:
 		switch oprow {
