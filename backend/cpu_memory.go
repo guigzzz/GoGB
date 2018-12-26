@@ -40,12 +40,10 @@ func (c *CPU) StoreHigh(n byte) {
 // LoadHLSPN implements LD HL, SP+n
 func (c *CPU) LoadHLSPN(n byte) {
 
-	flagV := c.SP + uint16(n)
-
 	c.ResetFlag(ZFlag)
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(c.SP&0xF > flagV&0xF, HFlag)
-	c.MaybeFlagSetter(c.SP&0xFF > flagV&0xFF, CFlag)
+	c.MaybeFlagSetter(byte(c.SP&0xF)+n&0xF > 0xF, HFlag)
+	c.MaybeFlagSetter(c.SP&0xFF+uint16(n) > 0xFF, CFlag)
 
 	v := c.SP
 	sv := int8(n)

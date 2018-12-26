@@ -254,20 +254,18 @@ func (c *CPU) AddHL16(n uint16) {
 
 	// Z unaffected
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(HL&0xFFF > res&0xFFF, HFlag)
-	c.MaybeFlagSetter(HL > res, CFlag)
+	c.MaybeFlagSetter(HL&0xFFF+n&0xFFF > 0xFFF, HFlag)
+	c.MaybeFlagSetter(n > 0 && HL >= res, CFlag)
 
 	c.Writedouble(H, L, res)
 }
 
 func (c *CPU) AddSP8(n byte) {
 
-	flagV := c.SP + uint16(n)
-
 	c.ResetFlag(ZFlag)
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(c.SP&0xF > flagV&0xF, HFlag)
-	c.MaybeFlagSetter(c.SP&0xFF > flagV&0xFF, CFlag)
+	c.MaybeFlagSetter(byte(c.SP&0xF)+n&0xF > 0xF, HFlag)
+	c.MaybeFlagSetter(c.SP&0xFF+uint16(n) > 0xFF, CFlag)
 
 	sv := int8(n)
 	if sv < 0 {

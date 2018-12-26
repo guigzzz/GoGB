@@ -117,7 +117,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 8:
 		switch oprow {
 		case 0: // LD (a16),SP
-			c.StoreSPNN(PackBytes(b[1], b[0]))
+			c.StoreSPNN(PackBytes(b[2], b[1]))
 		case 1: // JR r8
 			c.JumpRelative(b[1])
 		case 2: // JR Z,r8
@@ -482,7 +482,8 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 0: // RET
 			c.Ret()
 		case 1: // RETI
-			panic("RETI - Unimplemented")
+			fmt.Println("RETI - Unimplemented - will just RET for now")
+			c.Ret()
 		case 2: // JP (HL)
 			c.Jump(c.ReadHL())
 		case 3: // LD SP,HL
