@@ -35,13 +35,11 @@ func main() {
 		os.Exit(0)
 	}
 
-	cpu := backend.NewHLECPU()
-
-	data, err := ioutil.ReadFile(argsWithoutProg[0])
+	rom, err := ioutil.ReadFile(argsWithoutProg[0])
 	if err != nil {
 		panic(err)
 	}
-	cpu.LoadToRAM(data)
+	cpu := backend.NewCPU(rom)
 
 	ppu := backend.NewPPU(cpu)
 	go ppu.Renderer()
