@@ -87,6 +87,12 @@ func NewTestCPU() *CPU {
 	return c
 }
 
+func (c *CPU) Runner() {
+	for {
+		c.DecodeAndExecuteNext()
+	}
+}
+
 // GetRAM exposes the c.ram member
 func (c *CPU) GetRAM() []byte {
 	return c.ram

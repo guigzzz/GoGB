@@ -29,27 +29,21 @@ var files = []string{
 
 func main() {
 
-	argsWithoutProg := os.Args[1:]
-	if len(argsWithoutProg) != 1 {
-		fmt.Println("Usage: ./GoGB <path to rom>")
+	if len(os.Args) != 2 {
+		fmt.Println(fmt.Sprintf("Usage: ./%s <path to rom>", os.Args[0]))
 		os.Exit(0)
 	}
 
-	rom, err := ioutil.ReadFile(argsWithoutProg[0])
+	rom, err := ioutil.ReadFile(os.Args[1])
 	if err != nil {
 		panic(err)
 	}
+
 	cpu := backend.NewCPU(rom)
-
 	ppu := backend.NewPPU(cpu)
-	go ppu.Renderer()
-
 	screenRenderer := NewScreenRenderer(ppu, 200, 200)
 
-	go func() {
-		for {
-			cpu.DecodeAndExecuteNext()
-		}
-	}()
+	go ppu.Renderer()
+	go cpu.Runner()
 	screenRenderer.startRendering()
 }
