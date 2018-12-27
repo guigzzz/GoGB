@@ -38,8 +38,13 @@ type CPU struct {
 	ram []byte // 64 KB ram
 	IME bool   // interrupt master enable
 
-	selectedRomBank byte // points to the currently switched rom bank
-	mbcType         byte // memory bank controller type (0, 1, etc)
+	cartridgeROM       []byte
+	cartridgeRAM       []byte
+	cartrideRAMEnabled bool
+	ROMMode            bool
+	selectedROMBank    byte // points to the currently switched rom bank
+	selectedRAMBank    byte // points to the currently switched ram bank
+	mbcType            byte // memory bank controller type (0, 1, etc)
 
 	instructionCounter uint // to count instructions
 }
@@ -68,7 +73,8 @@ func NewCPU() *CPU {
 	// 0x19 + 0xE7 overflows a byte and = 0
 	c.ram[0x014D] = 0xE7
 
-	c.selectedRomBank = 1
+	c.selectedROMBank = 1
+	c.selectedRAMBank = 0
 
 	return c
 }
@@ -117,7 +123,8 @@ func NewHLECPU() *CPU {
 	c.ram[0xFFFF] = 0x00 //    ; IE
 
 	c.PC = 0x101
-	c.selectedRomBank = 1
+	c.selectedROMBank = 1
+	c.selectedRAMBank = 0
 
 	return c
 }
@@ -135,16 +142,41 @@ func (c *CPU) GetRAM() []byte {
 	return c.ram
 }
 
+func (c *CPU) getCartridgeRAMSize() uint32 {
+	switch c.ram[0x0149] {
+	case 0:
+		return 0
+	case 1:
+		return 1 << 11
+	case 2:
+		return 1 << 13
+	case 3:
+		return 1 << 15
+	case 4:
+		return 1 << 17
+	case 5:
+		return 1 << 16
+	default:
+		panic(fmt.Sprintf("Got unexpected RAM size index: %v", c.ram[0x0149]))
+	}
+}
+
 // LoadToRAM loads rom into RAM
 func (c *CPU) LoadToRAM(rom []byte) {
-	for i := 0; i < len(rom); i++ {
+
+	// copy first 16KB of data into the ram
+	for i := 0; i < (1 << 14); i++ {
 		c.ram[i] = rom[i]
 	}
 
-	c.selectedRomBank = 1
+	c.cartridgeROM = rom
+	c.cartridgeRAM = make([]byte, c.getCartridgeRAMSize())
+
+	c.selectedROMBank = 1
+	c.selectedRAMBank = 0
 	mbc := c.ram[0x147]
-	if mbc > 2 {
-		panic("GoGB only supports mbc1 and mbc2 for now")
+	if mbc > 1 {
+		panic("GoGB currently only supports roms using mbc1")
 	}
 	c.mbcType = mbc
 }
@@ -161,14 +193,6 @@ func (c *CPU) String() string {
 			c.ReadFlag(ZFlag), c.ReadFlag(NFlag), c.ReadFlag(HFlag), c.ReadFlag(CFlag))
 
 	return ret
-}
-
-func (c *CPU) readMemory(address uint16) byte {
-	return c.ram[address]
-}
-
-func (c *CPU) writeMemory(address uint16, value byte) {
-	c.ram[address] = value
 }
 
 // DecodeAndExecuteNext fetches next instruction from memory stored at PC
