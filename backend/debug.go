@@ -123,7 +123,7 @@ func (d *DebugHarness) GetExercicedOpSummary() {
 	// for k, v := range d.ExercisedOps {
 	// 	fmt.Println(k, v)
 	// }
-	fmt.Println("Instructions not exerciced:")
+	fmt.Println("Instructions exerciced:")
 	for _, v := range d.Unprefixed {
 		if _, ok := d.ExercisedOps[v.String()]; ok {
 			fmt.Println(v.String())

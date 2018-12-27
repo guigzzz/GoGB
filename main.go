@@ -12,7 +12,7 @@ func init() {
 }
 
 var files = []string{
-	"rom/cpu_instrs/individual/01-special.gb",            // 0 FAIL #6
+	"rom/cpu_instrs/individual/01-special.gb",            // 0 PASS
 	"rom/cpu_instrs/individual/02-interrupts.gb",         // 1 FAIL #2
 	"rom/cpu_instrs/individual/03-op sp,hl.gb",           // 2 PASS
 	"rom/cpu_instrs/individual/04-op r,imm.gb",           // 3 PASS
@@ -22,14 +22,14 @@ var files = []string{
 	"rom/cpu_instrs/individual/08-misc instrs.gb",        // 7 PASS
 	"rom/cpu_instrs/individual/09-op r,r.gb",             // 8 PASS
 	"rom/cpu_instrs/individual/10-bit ops.gb",            // 9 PASS
-	"rom/cpu_instrs/individual/11-op a,(hl).gb",          // 10 FAIL
+	"rom/cpu_instrs/individual/11-op a,(hl).gb",          // 10 PASS
 }
 
 func main() {
 
 	cpu := backend.NewHLECPU()
 
-	data, err := ioutil.ReadFile(files[10])
+	data, err := ioutil.ReadFile(files[6])
 	if err != nil {
 		panic(err)
 	}
@@ -44,30 +44,17 @@ func main() {
 
 	go func() {
 		for {
-			// debug.PrintDebugShort(cpu)
+			debug.PrintDebugShort(cpu)
 			// debug.PrintDebug(cpu)
 			// debug.RecordNextExercisedOp(cpu)
 			cpu.DecodeAndExecuteNext()
 
-			if cpu.PC < 0x100 {
+			if cpu.PC == 0xCC62 {
 				break
 			}
-
-			// if cpu.PC == 0xCC5F { // 5
-			// 	break
-			// }
-			// if cpu.PC == 0xCB31 { // 4
-			// 	break
-			// }
-			// if cpu.PC == 0xCF58 { // 9
-			// 	break
-			// }
-			// if cpu.PC == 0xC7D2 {
-			// 	break
-			// }
 		}
-		debug.PrintDebug(cpu)
-		// debug.GetExercicedOpSummary()
+		// debug.PrintDebug(cpu)
+		debug.GetExercicedOpSummary()
 	}()
 	screenRenderer.startRendering()
 
