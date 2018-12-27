@@ -45,14 +45,14 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 2:
 		switch oprow {
 		case 0: // LD (BC), A
-			c.ram[c.ReadBC()] = c.reg[A]
+			c.writeMemory(c.ReadBC(), c.reg[A])
 		case 1: // LD (DE), A
-			c.ram[c.ReadDE()] = c.reg[A]
+			c.writeMemory(c.ReadDE(), c.reg[A])
 		case 2: // LD (HL+), A
-			c.ram[c.ReadHL()] = c.reg[A]
+			c.writeMemory(c.ReadHL(), c.reg[A])
 			c.IncRegs(H, L)
 		case 3: // LD (HL-), A
-			c.ram[c.ReadHL()] = c.reg[A]
+			c.writeMemory(c.ReadHL(), c.reg[A])
 			c.DecRegs(H, L)
 		}
 	case 3:
@@ -139,14 +139,14 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 10:
 		switch oprow {
 		case 0: // LD A, (BC)
-			c.Load(A, c.ram[c.ReadBC()])
+			c.Load(A, c.readMemory(c.ReadBC()))
 		case 1: // LD A, (DE)
-			c.Load(A, c.ram[c.ReadDE()])
+			c.Load(A, c.readMemory(c.ReadDE()))
 		case 2: // LD A, (HL+)
-			c.Load(A, c.ram[c.ReadHL()])
+			c.Load(A, c.readMemory(c.ReadHL()))
 			c.IncRegs(H, L)
 		case 3: // LD A, (HL-)
-			c.Load(A, c.ram[c.ReadHL()])
+			c.Load(A, c.readMemory(c.ReadHL()))
 			c.DecRegs(H, L)
 		}
 	case 11:
@@ -420,8 +420,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // DI
-			// panic("DI - Unimplemented")
-			// fmt.Println("Disabling interrupts...", c.instructionCounter, c.PC)
+			c.IME = false
 		}
 	case 4:
 		v := PackBytes(b[2], b[1])
@@ -482,8 +481,8 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 0: // RET
 			c.Ret()
 		case 1: // RETI
-			fmt.Println("RETI - Todo: Enable interrupts here")
 			c.Ret()
+			c.IME = true
 		case 2: // JP (HL)
 			c.Jump(c.ReadHL())
 		case 3: // LD SP,HL
@@ -497,9 +496,9 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1: // JP C,a16
 			c.JumpC(v)
 		case 2: // LD (a16),A
-			c.ram[v] = c.reg[A]
+			c.writeMemory(v, c.reg[A])
 		case 3: // LD A,(a16)
-			c.reg[A] = c.ram[v]
+			c.reg[A] = c.readMemory(v)
 		}
 	case 11:
 		switch oprow {

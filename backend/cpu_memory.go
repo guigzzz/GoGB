@@ -13,13 +13,13 @@ func (c *CPU) LoadReg(dest, src Register) {
 // LoadHL load value from (HL)
 func (c *CPU) LoadHL(dest Register) {
 	HL := c.ReadHL()
-	c.reg[dest] = c.ram[HL]
+	c.reg[dest] = c.readMemory(HL)
 }
 
 // StoreN store value N to (HL)
 func (c *CPU) StoreN(n byte) {
 	HL := c.ReadHL()
-	c.ram[HL] = n
+	c.writeMemory(HL, n)
 }
 
 // StoreReg store value at R to (HL)
@@ -29,12 +29,14 @@ func (c *CPU) StoreReg(src Register) {
 
 // LoadHigh load with 0xFF00 offset
 func (c *CPU) LoadHigh(n byte) {
-	c.reg[A] = c.ram[0xFF00+uint16(n)]
+	address := 0xFF00 + uint16(n)
+	c.reg[A] = c.readMemory(address)
 }
 
 // StoreHigh store with 0xFF00 offset
 func (c *CPU) StoreHigh(n byte) {
-	c.ram[0xFF00+uint16(n)] = c.reg[A]
+	address := 0xFF00 + uint16(n)
+	c.writeMemory(address, c.reg[A])
 }
 
 // LoadHLSPN implements LD HL, SP+n
@@ -58,6 +60,6 @@ func (c *CPU) LoadHLSPN(n byte) {
 
 // StoreSPNN implements LD (a16), SP
 func (c *CPU) StoreSPNN(v uint16) {
-	c.ram[v] = byte(c.SP & 0xFF)
-	c.ram[v+1] = byte(c.SP >> 8)
+	c.writeMemory(v, byte(c.SP&0xFF))
+	c.writeMemory(v+1, byte(c.SP>>8))
 }

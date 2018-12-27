@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
+	"os"
 	"runtime"
 
 	"github.com/guigzzz/GoGB/backend"
@@ -27,9 +29,15 @@ var files = []string{
 
 func main() {
 
+	argsWithoutProg := os.Args[1:]
+	if len(argsWithoutProg) != 1 {
+		fmt.Println("Usage: ./GoGB <path to rom>")
+		os.Exit(0)
+	}
+
 	cpu := backend.NewHLECPU()
 
-	data, err := ioutil.ReadFile(files[1])
+	data, err := ioutil.ReadFile(argsWithoutProg[0])
 	if err != nil {
 		panic(err)
 	}
@@ -40,23 +48,10 @@ func main() {
 
 	screenRenderer := NewScreenRenderer(ppu, 200, 200)
 
-	debug := backend.NewDebugHarness()
-
 	go func() {
 		for {
-			debug.PrintDebugShort(cpu)
-			// debug.PrintDebug(cpu)
-			// debug.RecordNextExercisedOp(cpu)
 			cpu.DecodeAndExecuteNext()
-
-			if cpu.PC == 0xCC62 {
-				break
-			}
 		}
-		// debug.PrintDebug(cpu)
-		debug.GetExercicedOpSummary()
 	}()
 	screenRenderer.startRendering()
-
-	// debug.GetExercicedOpSummary()
 }

@@ -29,7 +29,7 @@ func (c *CPU) RotateLeftReg(r Register) {
 // RotateLeftHL implements RL for (HL) arg
 func (c *CPU) RotateLeftHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.rotateLeftn(c.ram[HL])
+	c.writeMemory(HL, c.rotateLeftn(c.readMemory(HL)))
 }
 
 // RotateLeftCn helper function for RLC
@@ -58,7 +58,7 @@ func (c *CPU) RotateLeftCReg(r Register) {
 // RotateLeftCHL implements RLC for (HL) arg
 func (c *CPU) RotateLeftCHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.rotateLeftCn(c.ram[HL])
+	c.writeMemory(HL, c.rotateLeftCn(c.readMemory(HL)))
 }
 
 ///// RRX /////
@@ -84,7 +84,7 @@ func (c *CPU) RotateRightReg(r Register) {
 // RotateRightHL implements RR for (HL) arg
 func (c *CPU) RotateRightHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.rotateRightn(c.ram[HL])
+	c.writeMemory(HL, c.rotateRightn(c.readMemory(HL)))
 }
 
 // RotateRightCn helper function for RRC
@@ -111,5 +111,5 @@ func (c *CPU) RotateRightCReg(r Register) {
 // RotateRightCHL implements RRC for (HL) arg
 func (c *CPU) RotateRightCHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.rotateRightCn(c.ram[HL])
+	c.writeMemory(HL, c.rotateRightCn(c.readMemory(HL)))
 }

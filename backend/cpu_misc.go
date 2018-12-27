@@ -4,15 +4,15 @@ package backend
 
 func (c *CPU) push2(h, l byte) {
 	c.SP--
-	c.ram[c.SP] = h
+	c.writeMemory(c.SP, h)
 	c.SP--
-	c.ram[c.SP] = l
+	c.writeMemory(c.SP, l)
 }
 
 func (c *CPU) pop2() (byte, byte) {
-	l := c.ram[c.SP]
+	l := c.readMemory(c.SP)
 	c.SP++
-	h := c.ram[c.SP]
+	h := c.readMemory(c.SP)
 	c.SP++
 	return h, l
 }

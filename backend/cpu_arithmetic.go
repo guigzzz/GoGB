@@ -30,7 +30,7 @@ func (c *CPU) Addn(n byte, carry bool) {
 // AddHL performs A += (HL) where (HL) is the 8 bit number stored @ (HL)
 func (c *CPU) AddHL(carry bool) {
 	HL := c.ReadHL()
-	c.Addn(c.ram[HL], carry)
+	c.Addn(c.readMemory(HL), carry)
 }
 
 // AddReg performs A += R where R is the 8 bit number stored in register R
@@ -64,7 +64,7 @@ func (c *CPU) Subn(n byte, carry bool) {
 // SubHL performs A -= (HL) where (HL) is the 8 bit number pointed to by HL
 func (c *CPU) SubHL(carry bool) {
 	HL := c.ReadHL()
-	c.Subn(c.ram[HL], carry)
+	c.Subn(c.readMemory(HL), carry)
 }
 
 // SubReg performs A -= R where R is the 8 bit number stored in register R
@@ -85,7 +85,7 @@ func (c *CPU) Cpn(n byte) {
 // CpHL performs A - (HL)
 func (c *CPU) CpHL() {
 	HL := c.ReadHL()
-	c.Cpn(c.ram[HL])
+	c.Cpn(c.readMemory(HL))
 }
 
 // CpReg performs A - R
@@ -110,7 +110,7 @@ func (c *CPU) Andn(n byte) {
 // AndHL performs A and (HL)
 func (c *CPU) AndHL() {
 	HL := c.ReadHL()
-	c.Andn(c.ram[HL])
+	c.Andn(c.readMemory(HL))
 }
 
 // AndReg performs A and R
@@ -131,7 +131,7 @@ func (c *CPU) Orn(n byte) {
 // OrHL performs A or (HL)
 func (c *CPU) OrHL() {
 	HL := c.ReadHL()
-	c.Orn(c.ram[HL])
+	c.Orn(c.readMemory(HL))
 }
 
 // OrReg performs A or R
@@ -152,7 +152,7 @@ func (c *CPU) Xorn(n byte) {
 // XorHL performs A xor (HL)
 func (c *CPU) XorHL() {
 	HL := c.ReadHL()
-	c.Xorn(c.ram[HL])
+	c.Xorn(c.readMemory(HL))
 }
 
 // XorReg performs A xor R
@@ -177,7 +177,7 @@ func (c *CPU) swp(n byte) byte {
 // SwapHL swaps nibbles at (HL)
 func (c *CPU) SwapHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.swp(c.ram[HL])
+	c.writeMemory(HL, c.swp(c.readMemory(HL)))
 }
 
 // SwapReg swaps nibbles of register r
@@ -208,14 +208,14 @@ func (c *CPU) Inc(r Register) {
 // IncHL implements 8-bit increment on (HL)
 func (c *CPU) IncHL() {
 	HL := c.ReadHL()
-	res := c.ram[HL] + 1
+	res := c.readMemory(HL) + 1
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.ResetFlag(NFlag)
-	c.MaybeFlagSetter(c.ram[HL]&0xF > res&0xF, HFlag)
+	c.MaybeFlagSetter(c.readMemory(HL)&0xF > res&0xF, HFlag)
 	// C not affected
 
-	c.ram[HL] = res
+	c.writeMemory(HL, res)
 }
 
 // Dec implements 8-bit decrement
@@ -235,14 +235,14 @@ func (c *CPU) Dec(r Register) {
 func (c *CPU) DecHL() {
 
 	HL := c.ReadHL()
-	res := c.ram[HL] - 1
+	res := c.readMemory(HL) - 1
 
 	c.MaybeFlagSetter(res == 0, ZFlag)
 	c.SetFlag(NFlag)
-	c.MaybeFlagSetter(c.ram[HL]&0xF < res&0xF, HFlag)
+	c.MaybeFlagSetter(c.readMemory(HL)&0xF < res&0xF, HFlag)
 	// C not affected
 
-	c.ram[HL] = res
+	c.writeMemory(HL, res)
 }
 
 ///// 16-BIT /////
@@ -312,7 +312,7 @@ func (c *CPU) Bit(r Register, bitnum byte) {
 
 // BitHL tests bit bitnum of value contained in (HL)
 func (c *CPU) BitHL(bitnum byte) {
-	v := c.ram[c.ReadHL()]
+	v := c.readMemory(c.ReadHL())
 	c.MaybeFlagSetter(v&(1<<bitnum) == 0, ZFlag)
 	c.ResetFlag(NFlag)
 	c.SetFlag(HFlag)
@@ -326,7 +326,8 @@ func (c *CPU) Res(r Register, bitnum byte) {
 // ResHL resets bit bitnum of value in (HL)
 func (c *CPU) ResHL(bitnum byte) {
 	HL := c.ReadHL()
-	c.ram[HL] &^= 1 << bitnum // &^ == AND NOT ---> c.reg[r] = c.reg[r] & !mask
+	res := c.readMemory(HL) &^ (1 << bitnum)
+	c.writeMemory(HL, res)
 }
 
 // Set sets bit bitnum of value in register r
@@ -337,7 +338,8 @@ func (c *CPU) Set(r Register, bitnum byte) {
 // SetHL sets bit bitnum of value in (HL)
 func (c *CPU) SetHL(bitnum byte) {
 	HL := c.ReadHL()
-	c.ram[HL] |= 1 << bitnum
+	res := c.readMemory(HL) | (1 << bitnum)
+	c.writeMemory(HL, res)
 }
 
 /////////

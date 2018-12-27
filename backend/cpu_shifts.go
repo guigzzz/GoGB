@@ -24,7 +24,7 @@ func (c *CPU) ShiftLeftArithmeticReg(r Register) {
 // ShiftLeftArithmeticHL performs a left arithmetic shift on a memory value
 func (c *CPU) ShiftLeftArithmeticHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.ShiftLeftArithmetic(c.ram[HL])
+	c.writeMemory(HL, c.ShiftLeftArithmetic(c.readMemory(HL)))
 }
 
 // ShiftRightLogical implements a logical right shift on a scalar n
@@ -47,7 +47,7 @@ func (c *CPU) ShiftRightLogicalReg(r Register) {
 // ShiftRightLogicalHL implements a logical right shift on a memory value
 func (c *CPU) ShiftRightLogicalHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.ShiftRightLogical(c.ram[HL])
+	c.writeMemory(HL, c.ShiftRightLogical(c.readMemory(HL)))
 }
 
 // ShiftRightArithmetic implements an arithmetic right shift on a scalar value
@@ -74,5 +74,5 @@ func (c *CPU) ShiftRightArithmeticReg(r Register) {
 // ShiftRightArithmeticHL implements a right arithmetic shift on a memory value
 func (c *CPU) ShiftRightArithmeticHL() {
 	HL := c.ReadHL()
-	c.ram[HL] = c.ShiftRightArithmetic(c.ram[HL])
+	c.writeMemory(HL, c.ShiftRightArithmetic(c.readMemory(HL)))
 }

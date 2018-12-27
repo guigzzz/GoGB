@@ -32,11 +32,16 @@ const (
 
 // CPU represents the current cpu state
 type CPU struct {
-	reg                [8]byte
-	SP                 uint16 // stack pointer
-	PC                 uint16 // program counter
-	ram                []byte // 64 KB ram
-	instructionCounter uint
+	reg [8]byte
+	SP  uint16 // stack pointer
+	PC  uint16 // program counter
+	ram []byte // 64 KB ram
+	IME bool   // interrupt master enable
+
+	selectedRomBank byte // points to the currently switched rom bank
+	mbcType         byte // memory bank controller type (0, 1, etc)
+
+	instructionCounter uint // to count instructions
 }
 
 // NewCPU creates a new cpu struct
@@ -62,6 +67,8 @@ func NewCPU() *CPU {
 	// need 0x19 + bytes from 0x0134-0x014D to add to 0x00
 	// 0x19 + 0xE7 overflows a byte and = 0
 	c.ram[0x014D] = 0xE7
+
+	c.selectedRomBank = 1
 
 	return c
 }
@@ -110,6 +117,7 @@ func NewHLECPU() *CPU {
 	c.ram[0xFFFF] = 0x00 //    ; IE
 
 	c.PC = 0x101
+	c.selectedRomBank = 1
 
 	return c
 }
@@ -132,6 +140,13 @@ func (c *CPU) LoadToRAM(rom []byte) {
 	for i := 0; i < len(rom); i++ {
 		c.ram[i] = rom[i]
 	}
+
+	c.selectedRomBank = 1
+	mbc := c.ram[0x147]
+	if mbc > 2 {
+		panic("GoGB only supports mbc1 and mbc2 for now")
+	}
+	c.mbcType = mbc
 }
 
 func (c *CPU) String() string {
@@ -146,6 +161,14 @@ func (c *CPU) String() string {
 			c.ReadFlag(ZFlag), c.ReadFlag(NFlag), c.ReadFlag(HFlag), c.ReadFlag(CFlag))
 
 	return ret
+}
+
+func (c *CPU) readMemory(address uint16) byte {
+	return c.ram[address]
+}
+
+func (c *CPU) writeMemory(address uint16, value byte) {
+	c.ram[address] = value
 }
 
 // DecodeAndExecuteNext fetches next instruction from memory stored at PC
