@@ -26,6 +26,7 @@ func TestLoadHL(t *testing.T) {
 	assert.Equal(t, c.reg[A], byte(5))
 
 	c.reg[A] = 25
+	c.Writedouble(H, L, 0xA000)
 	c.StoreReg(A)
 	assert.Equal(t, c.ram[c.ReadHL()], byte(25))
 }

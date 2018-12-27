@@ -7,7 +7,7 @@ func (c *CPU) readMemory(address uint16) byte {
 		bankAddress := (uint32(c.selectedROMBank) * 0x4000) + offset
 		return c.cartridgeROM[bankAddress]
 
-	} else if 0xA000 <= address && address < 0xBFFF {
+	} else if 0xA000 <= address && address < 0xC000 {
 
 		if c.selectedRAMBank == 0 {
 			return c.ram[address]

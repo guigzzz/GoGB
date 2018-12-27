@@ -19,7 +19,9 @@ func TestRotateLeftCarryReg(t *testing.T) {
 func TestRotateLeftCarryHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[B] = 0x85
-	c.ram[0] = 0
+
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0)
 
 	c.RotateLeftCHL()
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0))
@@ -39,7 +41,8 @@ func TestRotateLeftReg(t *testing.T) {
 func TestRotateLeftHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[L] = 0x80
-	c.ram[0x0080] = 0x11
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0x11)
 
 	c.RotateLeftHL()
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0x22))
@@ -58,7 +61,8 @@ func TestRotateRightCarryReg(t *testing.T) {
 
 func TestRotateRightCarryHL(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0] = 0
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0)
 	c.reg[C] = 0x1
 
 	c.RotateRightCHL()
@@ -79,6 +83,8 @@ func TestRotateRightReg(t *testing.T) {
 func TestRotateRightHL(t *testing.T) {
 	c := NewTestCPU()
 	c.ram[0] = 0x8A
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0x8A)
 	c.reg[A] = 0x01
 
 	c.RotateRightHL()

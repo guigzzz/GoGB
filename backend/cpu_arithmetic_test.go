@@ -278,7 +278,8 @@ func TestIncReg(t *testing.T) {
 
 func TestIncHL(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0] = 0x50
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0x50)
 
 	c.IncHL()
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0x51))
@@ -296,7 +297,8 @@ func TestDecReg(t *testing.T) {
 
 func TestDecHL(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0] = 0
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0)
 
 	c.DecHL()
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0xFF))
@@ -345,7 +347,8 @@ func TestSwapReg(t *testing.T) {
 func TestSwapHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0
-	c.ram[0] = 0xF0
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0xF0)
 
 	c.SwapHL()
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0x0F))
@@ -389,7 +392,8 @@ func TestSetReg(t *testing.T) {
 
 func TestSetHL(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0] = 0
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0)
 
 	c.SetHL(3)
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0x08))
@@ -409,7 +413,8 @@ func TestResReg(t *testing.T) {
 
 func TestResHL(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0] = 0xFF
+	c.Writedouble(H, L, 0xA000)
+	c.writeMemory(c.ReadHL(), 0xFF)
 
 	c.ResHL(3)
 	assert.Equal(t, c.ram[c.ReadHL()], byte(0xF7))

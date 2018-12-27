@@ -58,6 +58,12 @@ func NewCPU(rom []byte) *CPU {
 func NewTestCPU() *CPU {
 	c := new(CPU)
 	c.ram = make([]byte, 1<<16)
+
+	c.selectedROMBank = 1
+	c.selectedRAMBank = 0
+
+	c.cartridgeRAM = make([]byte, 1<<12)
+
 	return c
 }
 
