@@ -372,6 +372,8 @@ func GetPCIncrement(op byte) uint16 {
 		return 0
 	case 0xea: //{LD (a16) A 0xea 3 [16]}
 		return 3
+	case 0xd9:
+		return 0
 	default:
 		return 1
 	}

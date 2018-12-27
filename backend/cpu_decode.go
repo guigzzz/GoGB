@@ -482,7 +482,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 0: // RET
 			c.Ret()
 		case 1: // RETI
-			fmt.Println("RETI - Unimplemented - will just RET for now")
+			fmt.Println("RETI - Todo: Enable interrupts here")
 			c.Ret()
 		case 2: // JP (HL)
 			c.Jump(c.ReadHL())

@@ -18,7 +18,7 @@ var files = []string{
 	"rom/cpu_instrs/individual/04-op r,imm.gb",           // 3 PASS
 	"rom/cpu_instrs/individual/05-op rp.gb",              // 4 PASS
 	"rom/cpu_instrs/individual/06-ld r,r.gb",             // 5 PASS
-	"rom/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb", // 6 CRASH
+	"rom/cpu_instrs/individual/07-jr,jp,call,ret,rst.gb", // 6 PASS
 	"rom/cpu_instrs/individual/08-misc instrs.gb",        // 7 PASS
 	"rom/cpu_instrs/individual/09-op r,r.gb",             // 8 PASS
 	"rom/cpu_instrs/individual/10-bit ops.gb",            // 9 PASS
@@ -29,7 +29,7 @@ func main() {
 
 	cpu := backend.NewHLECPU()
 
-	data, err := ioutil.ReadFile(files[6])
+	data, err := ioutil.ReadFile(files[1])
 	if err != nil {
 		panic(err)
 	}
