@@ -70,6 +70,7 @@ func NewTestCPU() *CPU {
 
 func (c *CPU) Runner() {
 	for {
+		c.CheckAndHandleInterrupts()
 		c.DecodeAndExecuteNext()
 	}
 }

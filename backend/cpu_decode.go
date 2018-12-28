@@ -481,8 +481,8 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 0: // RET
 			c.Ret()
 		case 1: // RETI
-			c.Ret()
 			c.IME = true
+			c.Ret()
 		case 2: // JP (HL)
 			c.Jump(c.ReadHL())
 		case 3: // LD SP,HL
@@ -507,7 +507,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // EI
-			fmt.Println("Warning: EI - Unimplemented - Noop for now")
+			c.IME = true
 		}
 	case 12:
 		v := PackBytes(b[2], b[1])
