@@ -12,13 +12,13 @@ type CPU struct {
 	ram []byte // 64 KB ram
 	IME bool   // interrupt master enable
 
-	cartridgeROM       []byte
-	cartridgeRAM       []byte
-	cartrideRAMEnabled bool
-	ROMMode            bool
-	selectedROMBank    byte // points to the currently switched rom bank
-	selectedRAMBank    byte // points to the currently switched ram bank
-	mbcType            byte // memory bank controller type (0, 1, etc)
+	cartridgeROM        []byte
+	cartridgeRAM        []byte
+	cartridgeRAMEnabled bool
+	ROMMode             bool
+	selectedROMBank     byte // points to the currently switched rom bank
+	selectedRAMBank     byte // points to the currently switched ram bank
+	mbcType             byte // memory bank controller type (0, 1, etc)
 
 	instructionCounter uint // to count instructions
 }
@@ -62,6 +62,7 @@ func NewTestCPU() *CPU {
 	c.selectedROMBank = 1
 	c.selectedRAMBank = 0
 
+	c.cartridgeROM = make([]byte, 1<<15)
 	c.cartridgeRAM = make([]byte, 1<<12)
 
 	return c

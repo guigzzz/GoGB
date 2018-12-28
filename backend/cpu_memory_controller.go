@@ -13,9 +13,15 @@ func (c *CPU) readMemory(address uint16) byte {
 			return c.ram[address]
 		}
 
-		offset := uint32(address) - 0xA000
-		bankAddress := (uint32(c.selectedRAMBank) * 0x2000) + offset
-		return c.cartridgeRAM[bankAddress]
+		if c.cartridgeRAMEnabled {
+			offset := uint32(address) - 0xA000
+			bankAddress := (uint32(c.selectedRAMBank) * 0x2000) + offset
+			return c.cartridgeRAM[bankAddress]
+		}
+
+		panic("Program tried accessing cartridge ram but it is disabled." +
+			"To enable it, write 0xA to 0x0000-0x2000")
+
 	}
 	return c.ram[address]
 }
@@ -42,9 +48,9 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 func (c *CPU) handleBankSwitching(address uint16, value byte) {
 	if 0x0000 <= address && address < 0x2000 {
 		if value&0xA > 0 {
-			c.cartrideRAMEnabled = true
+			c.cartridgeRAMEnabled = true
 		} else {
-			c.cartrideRAMEnabled = false
+			c.cartridgeRAMEnabled = false
 		}
 	} else if 0x2000 <= address && address < 0x4000 {
 		value &= 0x1F // mask off lower 5 bits
@@ -59,9 +65,15 @@ func (c *CPU) handleBankSwitching(address uint16, value byte) {
 			// in ROM mode
 			c.selectedROMBank &= 0x1F
 			c.selectedROMBank |= value
+
+			// in ROM mode only RAM bank 0 can be used
+			c.selectedRAMBank = 0
 		} else {
 			// in RAM mode
 			c.selectedRAMBank = value >> 5
+
+			// in RAM mode, only ROM banks 1 can be used
+			c.selectedROMBank = 1
 		}
 
 	} else if 0x6000 <= address && address < 0x8000 {
