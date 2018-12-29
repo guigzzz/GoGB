@@ -1,7 +1,5 @@
 package backend
 
-import "fmt"
-
 // opcode grid for reference
 // http://www.pastraiser.com/cpu/gameboy/gameboy_opcodes.html
 
@@ -24,7 +22,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		case 0: // NOP
 			// panic("No Op - Unimplemented")
 		case 1: // STOP
-			fmt.Println("Warning: Got STOP instruction, this is probably a bug")
+			// fmt.Println("Warning: Got STOP instruction, this is probably a bug")
 		case 2: // JR NZ,r8
 			c.JumpRelativeNZ(b[1])
 		case 3: // JR NC,r8

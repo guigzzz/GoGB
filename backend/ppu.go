@@ -157,7 +157,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	tileMap := p.getWindowTileMap()
 	tileData, interpretIndexAsSigned := p.getWindowTileData()
 
-	rowInTile := yPos % 8
+	rowInTile := (yPos + lineNumber) % 8
 	tileRow := (yPos + lineNumber) / 8
 
 	for i := byte(0); i < 160; i++ {
@@ -185,8 +185,9 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
 		lineData := tileData[lineDataIndex : lineDataIndex+2]
 
-		msb := (lineData[1] >> (7 - (xPos+i)%8)) & 1
-		lsb := (lineData[0] >> (7 - (xPos+i)%8)) & 1
+		pixelInLine := (xPos + i) % 8
+		msb := (lineData[1] >> (7 - pixelInLine)) & 1
+		lsb := (lineData[0] >> (7 - pixelInLine)) & 1
 
 		colorCode := (msb << 1) | lsb
 
@@ -245,6 +246,10 @@ func (p *PPU) writeLY(lineNumber byte) {
 	p.ram[0xFF44] = lineNumber
 }
 
+func (p *PPU) dispatchVBlankInterrupt() {
+	p.ram[0xFF0F] |= 1
+}
+
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
 
 	// 114 clocks per line
@@ -266,13 +271,16 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 			// window pixels := getWindowPixels
 			// spritePixels := getSpritePixels
 
+			p.ImageMutex.Lock()
 			for i, pixel := range background {
 				p.screenBuffer[int(lineNumber)*160+i] = pixel
 			}
+			p.ImageMutex.Unlock()
 			lineNumber++
 
 			if lineNumber == 144 {
 				canRenderScreen <- struct{}{}
+				p.dispatchVBlankInterrupt()
 			}
 
 		case lineNumber < 154:

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strconv"
+	"strings"
 )
 
 // Opcode is a generic type definition for an opcode
@@ -80,7 +81,13 @@ func (d *DebugHarness) PrintDebug(c *CPU) {
 
 	// fmt.Sprintf("b: %6X, ", b),
 
-	fmt.Println("Instruction:", c.instructionCounter, op.String(),
+	opStr := op.String()
+
+	if strings.Contains(opStr, "r8") {
+		strings.Replace(opStr, "r8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), 1)
+	}
+
+	fmt.Println("Instruction:", c.instructionCounter, opStr,
 		fmt.Sprintf("[Length: %v, Cycles: %v]", op.Length, op.Cycles[0]))
 	if op.Length == 2 {
 		fmt.Printf("Value: 0x%0.2X\n", c.GetRAM()[c.PC+1])
@@ -101,7 +108,16 @@ func (d *DebugHarness) PrintDebugShort(c *CPU) {
 		op = d.Unprefixed[c.ram[c.PC]]
 	}
 
-	fmt.Printf("%v | %s | PC: 0x%0.4X\n", c.instructionCounter, op.String(), c.PC)
+	opStr := op.String()
+
+	opStr = strings.Replace(opStr, "d8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
+	opStr = strings.Replace(opStr, "a8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
+	opStr = strings.Replace(opStr, "r8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
+	opStr = strings.Replace(opStr, "d16", fmt.Sprintf("0x%0.2X%0.2X", c.ram[c.PC+1], c.ram[c.PC+2]), -1)
+	opStr = strings.Replace(opStr, "a16", fmt.Sprintf("0x%0.2X%0.2X", c.ram[c.PC+1], c.ram[c.PC+2]), -1)
+	opStr = strings.Replace(opStr, "(HL", fmt.Sprintf("(0x%0.4X", c.ReadHL()), -1)
+
+	fmt.Printf("%v | %s | PC: 0x%0.4X\n", c.instructionCounter, opStr, c.PC)
 }
 
 func (d *DebugHarness) RecordNextExercisedOp(c *CPU) {

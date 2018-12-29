@@ -1,5 +1,7 @@
 package backend
 
+import "fmt"
+
 func (c *CPU) readMemory(address uint16) byte {
 	if 0x4000 <= address && address < 0x8000 {
 
@@ -42,7 +44,13 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 		}
 
 	} else {
-		c.ram[address] = value
+		if address == 0xFF02 && value == 0x81 {
+			fmt.Print(string(c.ram[0xFF01]))
+		} else if address == 0xFF46 {
+			panic("Program tried to initialise DMA transfer, GoGB doesn't support that yet")
+		} else {
+			c.ram[address] = value
+		}
 	}
 }
 

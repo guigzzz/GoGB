@@ -1,7 +1,5 @@
 package backend
 
-import "fmt"
-
 var (
 	handlerAddresses = [5]uint16{0x40, 0x48, 0x50, 0x58, 0x60}
 )
@@ -31,8 +29,7 @@ func (c *CPU) CheckAndHandleInterrupts() {
 
 	for n := uint16(0); n < 5; n++ {
 		mask := byte(1 << n)
-		if IFReg&mask > 0 && IEReg&mask > 0 {
-			fmt.Println("Got interrupt:", 1<<n)
+		if IFReg&IEReg&mask > 0 {
 			c.IME = false
 
 			c.ram[0xFF0F] &^= mask
