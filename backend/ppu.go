@@ -206,9 +206,49 @@ func (p *PPU) getSpriteAttributes() []byte {
 	return p.ram[0xFE00 : 0xFE9F+1]
 }
 
-func (p *PPU) getSpritePixels(lineNumber byte) {
+func (p *PPU) getSpritePalette(paletteNumber byte) byte {
+	if paletteNumber > 0 {
+		return p.ram[0xFF49]
+	}
+	return p.ram[0xFF48]
+}
+
+func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	// Implements OAM searching and sprite rendering
+	pixels := [160]byte{}
+
+	attributes := p.getSpriteAttributes()
+	tileData := p.ram[0x8000:0x9000]
+
+	numSprites := 0
+
+	for i := 0; i < 40 && numSprites < 10; i++ {
+		yPos := attributes[4*i]
+
+		if yPos <= lineNumber && lineNumber < yPos+8 {
+			numSprites++
+
+			rowInTile := lineNumber - yPos
+			xPos := attributes[4*i+1]
+			tileIndex := attributes[4*i+2]
+			flags := attributes[4*i+3]
+
+			palette := p.getSpritePalette(flags & 1)
+
+			lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
+			lineData := tileData[lineDataIndex : lineDataIndex+2]
+
+			for l := 0; l < 8; l++ {
+				msb := (lineData[1] >> (7 - byte(l))) & 1
+				lsb := (lineData[0] >> (7 - byte(l))) & 1
+
+				colorCode := (msb << 1) | lsb
+
+				pixels[xPos+byte(l)] = mapColorToPalette(palette, colorCode)
+			}
+		}
+	}
 
 	// sprite data @ 8000-8FFF
 	// sprite attributes in OAM @ OAM @ FE00-FE9F
@@ -240,6 +280,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) {
 	// For each sprite in RAM, check if it has pixels that need to be drawn on that line
 	// and that we have so far drawn less than 10
 
+	return pixels
 }
 
 func (p *PPU) writeLY(lineNumber byte) {

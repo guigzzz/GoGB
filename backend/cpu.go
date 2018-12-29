@@ -118,7 +118,7 @@ func (c *CPU) DecodeAndExecuteNext() {
 	op := c.readMemory(c.PC)
 	oprow := (op & 0xF0) >> 4
 
-	b := []byte{c.readMemory(c.PC), c.readMemory(c.PC + 1), c.readMemory(c.PC + 2), c.readMemory(c.PC + 2)}
+	b := []byte{c.readMemory(c.PC), c.readMemory(c.PC + 1), c.readMemory(c.PC + 2)}
 
 	switch {
 	case oprow <= 3:
