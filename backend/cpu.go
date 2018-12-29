@@ -105,7 +105,7 @@ func (c *CPU) String() string {
 		fmt.Sprintf("B: 0x%0.2X, C: 0x%0.2X, (BC: 0x%0.4X)\n", c.reg[B], c.reg[C], c.ReadBC()) +
 		fmt.Sprintf("D: 0x%0.2X, E: 0x%0.2X, (DE: 0x%0.4X)\n", c.reg[D], c.reg[E], c.ReadDE()) +
 		fmt.Sprintf("H: 0x%0.2X, L: 0x%0.2X, (HL: 0x%0.4X), (HL): 0x%0.2X\n",
-			c.reg[H], c.reg[L], c.ReadHL(), c.ram[c.ReadHL()]) +
+			c.reg[H], c.reg[L], c.ReadHL(), c.readMemory(c.ReadHL())) +
 		fmt.Sprintf("SP: 0x%0.4X, PC: 0x%0.4X\n", c.SP, c.PC) +
 		fmt.Sprintf("Z: %1b, N: %1b, H: %1b, C: %1b\n",
 			c.ReadFlag(ZFlag), c.ReadFlag(NFlag), c.ReadFlag(HFlag), c.ReadFlag(CFlag))
@@ -115,10 +115,10 @@ func (c *CPU) String() string {
 
 // DecodeAndExecuteNext fetches next instruction from memory stored at PC
 func (c *CPU) DecodeAndExecuteNext() {
-	op := c.ram[c.PC]
+	op := c.readMemory(c.PC)
 	oprow := (op & 0xF0) >> 4
 
-	b := c.ram[c.PC : c.PC+3]
+	b := []byte{c.readMemory(c.PC), c.readMemory(c.PC + 1), c.readMemory(c.PC + 2), c.readMemory(c.PC + 2)}
 
 	switch {
 	case oprow <= 3:
@@ -272,7 +272,7 @@ func GetPCIncrement(op byte) uint16 {
 // FetchCycles returns the number of cycles that the current instruction should be ran for
 // This is used to make sure the emulator runs at the correct speed
 func (c *CPU) FetchCycles() byte {
-	op := c.ram[c.PC]
+	op := c.readMemory(c.PC)
 	if op == 0xCB {
 		return getCbprefixedCycles(c.ram[c.PC+1])
 	}

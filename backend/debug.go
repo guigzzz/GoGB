@@ -73,48 +73,43 @@ func (d *DebugHarness) PrintDebug(c *CPU) {
 	// b := c.ram[c.PC : c.PC+3]
 
 	var op Opcode
-	if c.ram[c.PC] == 0xCB {
-		op = d.Cbprefixed[c.ram[c.PC+1]]
+	if c.readMemory(c.PC) == 0xCB {
+		op = d.Cbprefixed[c.readMemory(c.PC+1)]
 	} else {
-		op = d.Unprefixed[c.ram[c.PC]]
+		op = d.Unprefixed[c.readMemory(c.PC)]
 	}
 
 	// fmt.Sprintf("b: %6X, ", b),
 
 	opStr := op.String()
-
-	if strings.Contains(opStr, "r8") {
-		strings.Replace(opStr, "r8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), 1)
-	}
-
 	fmt.Println("Instruction:", c.instructionCounter, opStr,
 		fmt.Sprintf("[Length: %v, Cycles: %v]", op.Length, op.Cycles[0]))
 	if op.Length == 2 {
-		fmt.Printf("Value: 0x%0.2X\n", c.GetRAM()[c.PC+1])
+		fmt.Printf("Value: 0x%0.2X\n", c.readMemory(c.PC+1))
 	}
 	if op.Length == 3 {
 		fmt.Printf("Value: 0x%0.2X%0.2X\n",
-			c.GetRAM()[c.PC+1], c.GetRAM()[c.PC+2])
+			c.GetRAM()[c.PC+1], c.readMemory(c.PC+2))
 	}
-	fmt.Println("LY:", c.ram[0xFF44])
+	fmt.Println("LY:", c.readMemory(0xFF44))
 	fmt.Println(c.String())
 }
 
 func (d *DebugHarness) PrintDebugShort(c *CPU) {
 	var op Opcode
-	if c.ram[c.PC] == 0xCB {
-		op = d.Cbprefixed[c.ram[c.PC+1]]
+	if c.readMemory(c.PC) == 0xCB {
+		op = d.Cbprefixed[c.readMemory(c.PC+1)]
 	} else {
-		op = d.Unprefixed[c.ram[c.PC]]
+		op = d.Unprefixed[c.readMemory(c.PC)]
 	}
 
 	opStr := op.String()
 
-	opStr = strings.Replace(opStr, "d8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
-	opStr = strings.Replace(opStr, "a8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
-	opStr = strings.Replace(opStr, "r8", fmt.Sprintf("0x%0.2X", c.ram[c.PC+1]), -1)
-	opStr = strings.Replace(opStr, "d16", fmt.Sprintf("0x%0.2X%0.2X", c.ram[c.PC+1], c.ram[c.PC+2]), -1)
-	opStr = strings.Replace(opStr, "a16", fmt.Sprintf("0x%0.2X%0.2X", c.ram[c.PC+1], c.ram[c.PC+2]), -1)
+	opStr = strings.Replace(opStr, "d8", fmt.Sprintf("0x%0.2X", c.readMemory(c.PC+1)), -1)
+	opStr = strings.Replace(opStr, "a8", fmt.Sprintf("0x%0.2X", c.readMemory(c.PC+1)), -1)
+	opStr = strings.Replace(opStr, "r8", fmt.Sprintf("0x%0.2X", c.readMemory(c.PC+1)), -1)
+	opStr = strings.Replace(opStr, "d16", fmt.Sprintf("0x%0.2X%0.2X", c.readMemory(c.PC+2), c.readMemory(c.PC+1)), -1)
+	opStr = strings.Replace(opStr, "a16", fmt.Sprintf("0x%0.2X%0.2X", c.readMemory(c.PC+2), c.readMemory(c.PC+1)), -1)
 	opStr = strings.Replace(opStr, "(HL", fmt.Sprintf("(0x%0.4X", c.ReadHL()), -1)
 
 	fmt.Printf("%v | %s | PC: 0x%0.4X\n", c.instructionCounter, opStr, c.PC)
