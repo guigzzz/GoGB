@@ -32,13 +32,14 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 		c.handleBankSwitching(address, value)
 
 	} else if 0xA000 <= address && address < 0xC000 {
+
 		if c.selectedRAMBank == 0 {
 			c.ram[address] = value
+		} else {
+			offset := uint32(address) - 0xA000
+			bankAddress := (uint32(c.selectedRAMBank) * 0x2000) + offset
+			c.cartridgeRAM[bankAddress] = value
 		}
-
-		offset := uint32(address) - 0xA000
-		bankAddress := (uint32(c.selectedRAMBank) * 0x2000) + offset
-		c.cartridgeRAM[bankAddress] = value
 
 	} else {
 		c.ram[address] = value
