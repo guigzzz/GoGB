@@ -47,7 +47,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 		if address == 0xFF02 && value == 0x81 {
 			fmt.Print(string(c.ram[0xFF01]))
 		} else if address == 0xFF46 {
-			panic("Program tried to initialise DMA transfer, GoGB doesn't support that yet")
+			c.DMA(value)
 		} else {
 			c.ram[address] = value
 		}
@@ -91,5 +91,12 @@ func (c *CPU) handleBankSwitching(address uint16, value byte) {
 		} else {
 			c.ROMMode = false
 		}
+	}
+}
+
+func (c *CPU) DMA(sourceAddress byte) {
+	blockAddress := uint16(sourceAddress) << 8
+	for i := uint16(0); i < 0x9F; i++ {
+		c.ram[0xFE00+i] = c.ram[blockAddress+i]
 	}
 }
