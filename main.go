@@ -27,7 +27,7 @@ func main() {
 
 	cpu := backend.NewCPU(rom)
 	ppu := backend.NewPPU(cpu)
-	screenRenderer := NewScreenRenderer(ppu, 200, 200)
+	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 
 	go ppu.Renderer()
 	go cpu.Runner()

@@ -28,7 +28,7 @@ type ScreenRenderer struct {
 	imageToDisplayMutex *sync.RWMutex
 }
 
-func NewScreenRenderer(p *backend.PPU, width, height int) *ScreenRenderer {
+func NewScreenRenderer(p *backend.PPU, c *backend.CPU, width, height int) *ScreenRenderer {
 	s := new(ScreenRenderer)
 
 	s.imageToDisplay = p.Image
@@ -49,6 +49,8 @@ func NewScreenRenderer(p *backend.PPU, width, height int) *ScreenRenderer {
 		closer.Fatalln(err)
 	}
 	win.MakeContextCurrent()
+
+	win.SetKeyCallback(keyCallbackFactory(c))
 
 	s.win = win
 
@@ -142,4 +144,30 @@ func rgbaTex(tex *uint32, rgba *image.RGBA) nk.Image {
 		0, gl.RGBA, gl.UNSIGNED_BYTE, unsafe.Pointer(&rgba.Pix[0]))
 	gl.GenerateMipmap(gl.TEXTURE_2D)
 	return nk.NkImageId(int32(*tex))
+}
+
+var keyMap = map[glfw.Key]string{
+	glfw.KeyS: "down",
+	glfw.KeyW: "up",
+	glfw.KeyA: "left",
+	glfw.KeyD: "right",
+
+	glfw.KeyU: "start",
+	glfw.KeyI: "select",
+	glfw.KeyK: "B",
+	glfw.KeyJ: "A",
+}
+
+func keyCallbackFactory(c *backend.CPU) glfw.KeyCallback {
+	return func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		if keyName, ok := keyMap[key]; ok && action == glfw.Press {
+			fmt.Println("Pressed: ", keyName)
+			c.KeyPressedMap[keyName] = true
+		}
+
+		if keyName, ok := keyMap[key]; ok && action == glfw.Release {
+			fmt.Println("Pressed: ", keyName)
+			c.KeyPressedMap[keyName] = false
+		}
+	}
 }

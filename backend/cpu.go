@@ -20,6 +20,7 @@ type CPU struct {
 	selectedRAMBank     byte // points to the currently switched ram bank
 	mbcType             byte // memory bank controller type (0, 1, etc)
 
+	KeyPressedMap      map[string]bool
 	instructionCounter uint // to count instructions
 }
 
@@ -59,6 +60,11 @@ func NewCPU(rom []byte) *CPU {
 	c.Writedouble(B, C, 0x0013)
 	c.Writedouble(D, E, 0x00D8)
 	c.Writedouble(H, L, 0x014D)
+
+	c.KeyPressedMap = map[string]bool{
+		"up": false, "down": false, "left": false, "right": false,
+		"A": false, "B": false, "start": false, "select": false,
+	}
 
 	return c
 }

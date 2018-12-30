@@ -1,6 +1,8 @@
 package backend
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func (c *CPU) readMemory(address uint16) byte {
 	if 0x4000 <= address && address < 0x8000 {
@@ -25,7 +27,7 @@ func (c *CPU) readMemory(address uint16) byte {
 			"To enable it, write 0xA to 0x0000-0x2000")
 
 	} else if address == 0xFF00 {
-		return 0xFF
+		return c.ram[0xFF00]
 	}
 	return c.ram[address]
 }
@@ -50,6 +52,8 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			fmt.Print(string(c.ram[0xFF01]))
 		} else if address == 0xFF46 {
 			c.DMA(value)
+		} else if address == 0xFF00 {
+			c.ram[0xFF00] = c.readKeyPressed(value)
 		} else {
 			c.ram[address] = value
 		}
@@ -101,4 +105,47 @@ func (c *CPU) DMA(sourceAddress byte) {
 	for i := uint16(0); i < 0x9F; i++ {
 		c.ram[0xFE00+i] = c.ram[blockAddress+i]
 	}
+}
+
+var keyMap = map[string]byte{
+	"up":     0x14,
+	"left":   0x12,
+	"down":   0x18,
+	"right":  0x11,
+	"A":      0x21,
+	"B":      0x22,
+	"start":  0x28,
+	"select": 0x24,
+}
+
+func (c *CPU) readKeyPressed(code byte) byte {
+	regValue := byte(0xF)
+	if code&0x20 == 0 { // 0b1101_1111
+		if c.KeyPressedMap["start"] {
+			regValue &^= 0x8
+		}
+		if c.KeyPressedMap["select"] {
+			regValue &^= 0x4
+		}
+		if c.KeyPressedMap["B"] {
+			regValue &^= 0x2
+		}
+		if c.KeyPressedMap["A"] {
+			regValue &^= 0x1
+		}
+	} else if code&0x10 == 0 { // 0b1110_1111
+		if c.KeyPressedMap["down"] {
+			regValue &^= 0x8
+		}
+		if c.KeyPressedMap["up"] {
+			regValue &^= 0x4
+		}
+		if c.KeyPressedMap["left"] {
+			regValue &^= 0x2
+		}
+		if c.KeyPressedMap["right"] {
+			regValue &^= 0x1
+		}
+	}
+	return regValue
 }
