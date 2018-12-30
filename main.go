@@ -30,6 +30,6 @@ func main() {
 	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 
 	go ppu.Renderer()
-	go cpu.Runner()
+	go cpu.Runner(false)
 	screenRenderer.startRendering()
 }

@@ -20,14 +20,16 @@ type CPU struct {
 	selectedRAMBank     byte // points to the currently switched ram bank
 	mbcType             byte // memory bank controller type (0, 1, etc)
 
-	KeyPressedMap      map[string]bool
-	instructionCounter uint // to count instructions
+	KeyPressedMap map[string]bool
 
 	haltMode byte
 	// 0 -> not halted,
 	// 1 -> IME == true; stop executing until IE & IF > 0, then service interrupt
 	// 2 -> IME == false; IE & IF == 0; stop executing until IE & IF > 0, then skip to next instruction
 	// 3 -> IME == false; IE & IF > 0; HALT BUG
+
+	cycleCounter uint64 // to count cycles
+	timerPeriod  uint64 // 1024, 16, 64, 256
 }
 
 // NewCPU creates a new cpu struct
@@ -73,6 +75,7 @@ func NewCPU(rom []byte) *CPU {
 	}
 
 	c.haltMode = 0
+	c.timerPeriod = 0
 
 	return c
 }
@@ -92,10 +95,46 @@ func NewTestCPU() *CPU {
 	return c
 }
 
-func (c *CPU) Runner() {
-	for {
-		c.CheckAndHandleInterrupts()
-		c.DecodeAndExecuteNext()
+func (c *CPU) Runner(debug bool) {
+	if debug {
+		debugger := NewDebugHarness()
+		for {
+			if c.haltMode == 0 {
+				debugger.PrintDebugShort(c)
+			}
+
+			c.CheckAndHandleInterrupts()
+
+			if c.haltMode == 0 {
+				c.DecodeAndExecuteNext()
+			}
+
+			var increment uint64
+			if c.haltMode > 0 {
+				increment = 4
+			} else {
+				increment = uint64(c.FetchCycles())
+			}
+			c.checkForTimerIncrementAndInterrupt(increment)
+			c.cycleCounter += increment
+		}
+	} else {
+		for {
+			c.CheckAndHandleInterrupts()
+
+			if c.haltMode == 0 {
+				c.DecodeAndExecuteNext()
+			}
+
+			var increment uint64
+			if c.haltMode > 0 {
+				increment = 4
+			} else {
+				increment = uint64(c.FetchCycles())
+			}
+			c.checkForTimerIncrementAndInterrupt(increment)
+			c.cycleCounter += increment
+		}
 	}
 }
 
@@ -160,7 +199,6 @@ func (c *CPU) DecodeAndExecuteNext() {
 	}
 
 	c.PC += GetPCIncrement(op)
-	c.instructionCounter++
 }
 
 // GetPCIncrement return PC increment for opcode
@@ -298,7 +336,7 @@ func GetPCIncrement(op byte) uint16 {
 func (c *CPU) FetchCycles() byte {
 	op := c.readMemory(c.PC)
 	if op == 0xCB {
-		return getCbprefixedCycles(c.ram[c.PC+1])
+		return getCbprefixedCycles(c.readMemory(c.PC + 1))
 	}
 	return getUnprefixedCycles(op)
 }

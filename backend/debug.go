@@ -82,7 +82,7 @@ func (d *DebugHarness) PrintDebug(c *CPU) {
 	// fmt.Sprintf("b: %6X, ", b),
 
 	opStr := op.String()
-	fmt.Println("Instruction:", c.instructionCounter, opStr,
+	fmt.Println("Instruction:", opStr,
 		fmt.Sprintf("[Length: %v, Cycles: %v]", op.Length, op.Cycles[0]))
 	if op.Length == 2 {
 		fmt.Printf("Value: 0x%0.2X\n", c.readMemory(c.PC+1))
@@ -112,7 +112,7 @@ func (d *DebugHarness) PrintDebugShort(c *CPU) {
 	opStr = strings.Replace(opStr, "a16", fmt.Sprintf("0x%0.2X%0.2X", c.readMemory(c.PC+2), c.readMemory(c.PC+1)), -1)
 	opStr = strings.Replace(opStr, "(HL", fmt.Sprintf("(0x%0.4X", c.ReadHL()), -1)
 
-	fmt.Printf("%v | %s | PC: 0x%0.4X\n", c.instructionCounter, opStr, c.PC)
+	fmt.Printf("%s | PC: 0x%0.4X\n", opStr, c.PC)
 }
 
 func (d *DebugHarness) RecordNextExercisedOp(c *CPU) {

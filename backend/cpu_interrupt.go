@@ -18,6 +18,11 @@ func (c *CPU) CheckAndHandleInterrupts() {
 
 	IF, IE := c.getInterruptRegisters()
 
+	if c.haltMode == 2 && IF&IE > 0 {
+		c.haltMode = 0
+		return
+	}
+
 	if !c.IME || IF&IE == 0 {
 		return
 	}
@@ -29,19 +34,39 @@ func (c *CPU) CheckAndHandleInterrupts() {
 
 			c.ram[0xFF0F] &^= mask
 
-			if c.haltMode == 0 || c.haltMode == 1 {
-				// we are either not halted
-				// or halted but will handle interrupt
-				// either way PC points to next instruction
-				c.pushPC()
-				c.PC = handlerAddresses[n]
-			}
-			// if haltMode == 2 then don't handle interrupt,
-			// skip to next instruction
+			// we are either not halted
+			// or halted but will handle interrupt (i.e. mode 1)
+			// either way PC points to next instruction
+			c.pushPC()
+			c.PC = handlerAddresses[n]
+
+			// remove halted status
 			c.haltMode = 0
 
 			return
 		}
+	}
+}
+
+func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
+
+	if c.timerPeriod == 0 {
+		c.ram[0xFF05] = 0
+		return
+	} else if cycleIncrement < c.timerPeriod-c.cycleCounter%c.timerPeriod {
+		return
+	}
+
+	TIMA := c.ram[0xFF05]
+	if TIMA == 0xFF {
+
+		// write TMA into TIMA
+		c.ram[0xFF05] = c.ram[0xFF06]
+
+		// write to IF to signal interrupt
+		c.ram[0xFF0F] |= 0x4
+	} else {
+		c.ram[0xFF05]++
 	}
 }
 
