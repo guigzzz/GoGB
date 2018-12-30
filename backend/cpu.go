@@ -47,8 +47,18 @@ func NewCPU(rom []byte) *CPU {
 	c.selectedROMBank = 1
 	c.selectedRAMBank = 0
 
+	c.writeMemory(0xFF40, 0x91)
+	c.writeMemory(0xFF47, 0xFC)
+	c.writeMemory(0xFF48, 0xFF)
+	c.writeMemory(0xFF49, 0xFF)
+
 	c.PC = 0x100
 	c.SP = 0xFFFE
+
+	c.Writedouble(A, F, 0x01B0)
+	c.Writedouble(B, C, 0x0013)
+	c.Writedouble(D, E, 0x00D8)
+	c.Writedouble(H, L, 0x014D)
 
 	return c
 }

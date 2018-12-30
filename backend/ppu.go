@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"math"
 	"sync"
 	"time"
 )
@@ -207,7 +208,7 @@ func (p *PPU) getSpriteAttributes() []byte {
 }
 
 func (p *PPU) getSpritePalette(paletteNumber byte) byte {
-	if paletteNumber > 0 {
+	if paletteNumber&0x10 > 0 {
 		return p.ram[0xFF49]
 	}
 	return p.ram[0xFF48]
@@ -225,18 +226,38 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	for i := 0; i < 40 && numSprites < 10; i++ {
 		yPos := attributes[4*i]
+		if yPos == 0 || yPos > 144+16 {
+			// sprite is above the first line
+			// no need to render it
+			continue
+		}
 
-		if yPos <= lineNumber && lineNumber < yPos+8 {
+		spriteHeight := byte(8)
+		if yPos-16 <= lineNumber && lineNumber < yPos+spriteHeight-16 {
 			numSprites++
 
-			rowInTile := lineNumber - yPos
 			xPos := attributes[4*i+1]
+			if xPos == 0 || xPos > 160+8 {
+				// sprite isn't in view, no point rendering it
+				// however still increment the number of sprites
+				// on that line
+				continue
+			}
+
+			rowInTile := lineNumber - yPos + 16
+
 			tileIndex := attributes[4*i+2]
 			flags := attributes[4*i+3]
 
-			palette := p.getSpritePalette(flags & 1)
+			// xFlipped := flags&0x20 > 0
+			// yFlipped := flags&0x40 > 0
+
+			palette := p.getSpritePalette(flags)
 
 			lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
+			// if yFlipped {
+			// 	lineDataIndex = uint(tileIndex)*16 + 7 - 2*uint(rowInTile)
+			// }
 			lineData := tileData[lineDataIndex : lineDataIndex+2]
 
 			for l := 0; l < 8; l++ {
@@ -245,7 +266,13 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 				colorCode := (msb << 1) | lsb
 
-				pixels[xPos+byte(l)] = mapColorToPalette(palette, colorCode)
+				pixelIndex := byte(math.Max(0, float64(xPos-8+byte(l))))
+
+				// if !xFlipped {
+				pixels[pixelIndex] = mapColorToPalette(palette, colorCode)
+				// } else {
+				// 	pixels[xPos+7-byte(l)] = mapColorToPalette(palette, colorCode)
+				// }
 			}
 		}
 	}
@@ -310,11 +337,15 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 		case lineNumber < 144:
 			background := p.getBackgroundPixels(lineNumber)
 			// window pixels := getWindowPixels
-			// spritePixels := getSpritePixels
+			spritePixels := p.getSpritePixels(lineNumber)
 
 			p.ImageMutex.Lock()
-			for i, pixel := range background {
-				p.screenBuffer[int(lineNumber)*160+i] = pixel
+			for i := range background {
+				if spritePixels[i] > 0 {
+					p.screenBuffer[int(lineNumber)*160+i] = spritePixels[i]
+				} else {
+					p.screenBuffer[int(lineNumber)*160+i] = background[i]
+				}
 			}
 			p.ImageMutex.Unlock()
 			lineNumber++

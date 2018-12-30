@@ -24,6 +24,8 @@ func (c *CPU) readMemory(address uint16) byte {
 		panic("Program tried accessing cartridge ram but it is disabled." +
 			"To enable it, write 0xA to 0x0000-0x2000")
 
+	} else if address == 0xFF00 {
+		return 0xFF
 	}
 	return c.ram[address]
 }
