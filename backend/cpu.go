@@ -22,6 +22,12 @@ type CPU struct {
 
 	KeyPressedMap      map[string]bool
 	instructionCounter uint // to count instructions
+
+	haltMode byte
+	// 0 -> not halted,
+	// 1 -> IME == true; stop executing until IE & IF > 0, then service interrupt
+	// 2 -> IME == false; IE & IF == 0; stop executing until IE & IF > 0, then skip to next instruction
+	// 3 -> IME == false; IE & IF > 0; HALT BUG
 }
 
 // NewCPU creates a new cpu struct
@@ -65,6 +71,8 @@ func NewCPU(rom []byte) *CPU {
 		"up": false, "down": false, "left": false, "right": false,
 		"A": false, "B": false, "start": false, "select": false,
 	}
+
+	c.haltMode = 0
 
 	return c
 }

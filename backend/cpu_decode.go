@@ -239,7 +239,7 @@ func (c *CPU) DecodeMem(b []byte) {
 		case 2:
 			c.LoadHL(H)
 		case 3:
-			panic("HALT - Unimplemented")
+			c.halt()
 		}
 	case 7:
 		c.decodeLDArg1(oprow, A)
