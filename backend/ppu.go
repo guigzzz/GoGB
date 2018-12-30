@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"image"
 	"image/color"
-	"math"
 	"sync"
 	"time"
 )
@@ -214,6 +213,13 @@ func (p *PPU) getSpritePalette(paletteNumber byte) byte {
 	return p.ram[0xFF48]
 }
 
+func (p *PPU) getSpriteHeight() byte {
+	if p.lcdControlRegisterIsBitSet(objSize) {
+		return 16
+	}
+	return 8
+}
+
 func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	// Implements OAM searching and sprite rendering
@@ -221,6 +227,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	attributes := p.getSpriteAttributes()
 	tileData := p.ram[0x8000:0x9000]
+	spriteHeight := p.getSpriteHeight()
 
 	numSprites := 0
 
@@ -232,12 +239,11 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			continue
 		}
 
-		spriteHeight := byte(8)
 		if yPos-16 <= lineNumber && lineNumber < yPos+spriteHeight-16 {
 			numSprites++
 
 			xPos := attributes[4*i+1]
-			if xPos == 0 || xPos > 160+8 {
+			if xPos == 0 || xPos >= 160+8 {
 				// sprite isn't in view, no point rendering it
 				// however still increment the number of sprites
 				// on that line
@@ -249,7 +255,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			tileIndex := attributes[4*i+2]
 			flags := attributes[4*i+3]
 
-			// xFlipped := flags&0x20 > 0
+			xFlipped := flags&0x20 > 0
 			// yFlipped := flags&0x40 > 0
 
 			palette := p.getSpritePalette(flags)
@@ -259,6 +265,10 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			// 	lineDataIndex = uint(tileIndex)*16 + 7 - 2*uint(rowInTile)
 			// }
 			lineData := tileData[lineDataIndex : lineDataIndex+2]
+			if xFlipped {
+				lineData[0] = reverse(lineData[0])
+				lineData[1] = reverse(lineData[1])
+			}
 
 			for l := 0; l < 8; l++ {
 				msb := (lineData[1] >> (7 - byte(l))) & 1
@@ -266,13 +276,10 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 				colorCode := (msb << 1) | lsb
 
-				pixelIndex := byte(math.Max(0, float64(xPos-8+byte(l))))
-
-				// if !xFlipped {
-				pixels[pixelIndex] = mapColorToPalette(palette, colorCode)
-				// } else {
-				// 	pixels[xPos+7-byte(l)] = mapColorToPalette(palette, colorCode)
-				// }
+				pos := xPos - 8 + byte(l)
+				if 0 <= pos && pos <= 159 {
+					pixels[pos] = mapColorToPalette(palette, colorCode)
+				}
 			}
 		}
 	}
@@ -308,6 +315,16 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	// and that we have so far drawn less than 10
 
 	return pixels
+}
+
+func reverse(in byte) byte {
+	x := uint32(in)
+	x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1)   // Swap _<>_
+	x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2)   // Swap __<>__
+	x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4)   // Swap ____<>____
+	x = ((x & 0x00FF00FF) << 8) | ((x & 0xFF00FF00) >> 8)   // Swap ...
+	x = ((x & 0x0000FFFF) << 16) | ((x & 0xFFFF0000) >> 16) // Swap ...
+	return byte(x >> 24)
 }
 
 func (p *PPU) writeLY(lineNumber byte) {
