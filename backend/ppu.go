@@ -331,6 +331,10 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 
 	for range canRenderLine.C {
 
+		if !p.lcdControlRegisterIsBitSet(lcdDisplayEnable) {
+			continue
+		}
+
 		p.writeLY(lineNumber)
 
 		switch {
@@ -408,12 +412,6 @@ func (p *PPU) Renderer() {
 	}
 }
 
-func (p *PPU) PrintDebug() {
-	y, x := p.getScroll()
-	fmt.Printf("LCDC: %0.8b, BG Palette: %0.8b, BG Y scroll: %d, BG X scroll: %d\n",
-		p.ram[0xFF40], p.getBGPalette(), y, x)
-}
-
 func (p *PPU) DumpBackground() image.Image {
 	image := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{255, 255}})
 
@@ -452,7 +450,6 @@ func (p *PPU) DumpBackground() image.Image {
 	}
 
 	scrollY, scrollX := p.getScroll()
-	// var scrollY, scrollX byte = 0, 0
 
 	red := color.RGBA{255, 0, 0, 255}
 	for i := byte(0); i < 160; i++ {

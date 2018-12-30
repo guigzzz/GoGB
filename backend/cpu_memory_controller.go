@@ -107,17 +107,6 @@ func (c *CPU) DMA(sourceAddress byte) {
 	}
 }
 
-var keyMap = map[string]byte{
-	"up":     0x14,
-	"left":   0x12,
-	"down":   0x18,
-	"right":  0x11,
-	"A":      0x21,
-	"B":      0x22,
-	"start":  0x28,
-	"select": 0x24,
-}
-
 func (c *CPU) readKeyPressed(code byte) byte {
 	regValue := byte(0xF)
 	if code&0x20 == 0 { // 0b1101_1111
