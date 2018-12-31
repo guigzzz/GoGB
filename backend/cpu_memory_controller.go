@@ -61,6 +61,10 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			c.handleTimer(newValue, oldValue)
 			c.ram[address] = newValue
 
+		} else if address == 0xFF04 {
+			// when DIV is written
+			// it is reset to 0
+			c.ram[0xFF04] = 0
 		} else {
 			c.ram[address] = value
 		}

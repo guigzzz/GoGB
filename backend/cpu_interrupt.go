@@ -50,6 +50,8 @@ func (c *CPU) CheckAndHandleInterrupts() {
 
 func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 
+	c.ram[0xFF04] = byte(c.cycleCounter / 256) // div
+
 	if c.timerPeriod == 0 {
 		c.ram[0xFF05] = 0
 		return
