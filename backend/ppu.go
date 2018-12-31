@@ -329,10 +329,43 @@ func reverse(in byte) byte {
 
 func (p *PPU) writeLY(lineNumber byte) {
 	p.ram[0xFF44] = lineNumber
+
+	if lineNumber == p.ram[0xFF45] { // CMPLINE
+		p.ram[0xFF41] |= 1 << 2
+
+		// If scanline coincidence interrupt is enabled
+		if p.ram[0xFF41]&0x40 > 0 {
+			// dispatch LCD stat interrupt
+			p.ram[0xFF0F] |= 2
+		}
+	}
 }
 
 func (p *PPU) dispatchVBlankInterrupt() {
 	p.ram[0xFF0F] |= 1
+}
+
+func (p *PPU) dispatchLCDStatInterrupt() {
+	p.ram[0xFF0F] |= 2
+}
+
+func (p *PPU) setControllerMode(mode string) {
+	switch mode {
+	case "VBlank":
+		p.dispatchVBlankInterrupt()
+		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x1
+	case "HBlank":
+		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x0
+		if p.ram[0xFF41]&0x8 > 0 {
+			p.dispatchLCDStatInterrupt()
+		}
+	case "OAM":
+		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x2
+	case "PixelTransfer":
+		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x3
+	default:
+		panic(fmt.Sprintln("Got unexpected LCD controller mode: ", mode))
+	}
 }
 
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
@@ -374,6 +407,7 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 			if lineNumber == 144 {
 				canRenderScreen <- struct{}{}
 				p.dispatchVBlankInterrupt()
+				p.setControllerMode("VBlank")
 			}
 
 		case lineNumber < 154:
@@ -381,6 +415,10 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 
 		case lineNumber == 154:
 			lineNumber = 0
+		}
+
+		if lineNumber < 144 {
+			p.setControllerMode("HBlank")
 		}
 	}
 }
