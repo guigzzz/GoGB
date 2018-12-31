@@ -9,7 +9,7 @@ To use it, first `cd` into your `$GOPATH` then:
 ```
 go get https://github.com/guigzzz/GoGB
 cd src/github.com/guigzzz/GoGB/
-go build
+go get && go build
 ./GoGB <path to rom>
 ```
 
