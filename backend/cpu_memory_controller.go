@@ -119,6 +119,9 @@ func (c *CPU) DMA(sourceAddress byte) {
 }
 
 func (c *CPU) readKeyPressed(code byte) byte {
+	c.KeyPressedMapLock.RLock()
+	defer c.KeyPressedMapLock.RUnlock()
+
 	regValue := byte(0xF)
 	if code&0x20 == 0 { // 0b1101_1111
 		if c.KeyPressedMap["start"] {

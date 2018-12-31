@@ -160,6 +160,9 @@ var keyMap = map[glfw.Key]string{
 
 func keyCallbackFactory(c *backend.CPU) glfw.KeyCallback {
 	return func(w *glfw.Window, key glfw.Key, scancode int, action glfw.Action, mods glfw.ModifierKey) {
+		c.KeyPressedMapLock.Lock()
+		defer c.KeyPressedMapLock.Unlock()
+
 		if keyName, ok := keyMap[key]; ok && action == glfw.Press {
 			fmt.Println("Pressed: ", keyName)
 			c.KeyPressedMap[keyName] = true
