@@ -96,45 +96,30 @@ func NewTestCPU() *CPU {
 }
 
 func (c *CPU) Runner(debug bool) {
-	if debug {
-		debugger := NewDebugHarness()
-		for {
-			if c.haltMode == 0 {
-				debugger.PrintDebugShort(c)
-			}
-
-			c.CheckAndHandleInterrupts()
-
-			if c.haltMode == 0 {
-				c.DecodeAndExecuteNext()
-			}
-
-			var increment uint64
-			if c.haltMode > 0 {
-				increment = 4
-			} else {
-				increment = uint64(c.FetchCycles())
-			}
-			c.checkForTimerIncrementAndInterrupt(increment)
-			c.cycleCounter += increment
+	debugger := NewDebugHarness()
+	for {
+		if debug && c.haltMode == 0 {
+			debugger.PrintDebugShort(c)
 		}
-	} else {
-		for {
-			c.CheckAndHandleInterrupts()
 
-			if c.haltMode == 0 {
-				c.DecodeAndExecuteNext()
-			}
+		c.CheckAndHandleInterrupts()
 
-			var increment uint64
-			if c.haltMode > 0 {
-				increment = 4
-			} else {
-				increment = uint64(c.FetchCycles())
-			}
-			c.checkForTimerIncrementAndInterrupt(increment)
-			c.cycleCounter += increment
+		if c.haltMode == 0 {
+			c.DecodeAndExecuteNext()
 		}
+
+		if c.PC == 0x3144 {
+			debugger.PrintDebugShort(c)
+		}
+
+		var increment uint64
+		if c.haltMode > 0 {
+			increment = 4
+		} else {
+			increment = uint64(c.FetchCycles())
+		}
+		c.checkForTimerIncrementAndInterrupt(increment)
+		c.cycleCounter += increment
 	}
 }
 
@@ -336,9 +321,17 @@ func GetPCIncrement(op byte) uint16 {
 func (c *CPU) FetchCycles() byte {
 	op := c.readMemory(c.PC)
 	if op == 0xCB {
-		return getCbprefixedCycles(c.readMemory(c.PC + 1))
+		cycles := getCbprefixedCycles(c.readMemory(c.PC + 1))
+		if cycles == 0 {
+			panic(fmt.Sprintf("prefixed Cycle - got unknown op: %X\n%s", op, c.String()))
+		}
+		return cycles
 	}
-	return getUnprefixedCycles(op)
+	cycles := getUnprefixedCycles(op)
+	if cycles == 0 {
+		panic(fmt.Sprintf("unprefixed Cycle - got unknown op: %X\n%s", op, c.String()))
+	}
+	return cycles
 }
 
 func getUnprefixedCycles(op byte) byte {
@@ -842,7 +835,7 @@ func getUnprefixedCycles(op byte) byte {
 	case 0xff: //{RST 38H  0xff 1 [16]}
 		return 16
 	default:
-		panic(fmt.Sprintf("Unprefixed Cycle - got unknown op: %X", op))
+		return 0
 	}
 }
 
@@ -1368,6 +1361,6 @@ func getCbprefixedCycles(op byte) byte {
 	case 0xff: //{SET 7 A 0xff 2 [8]}
 		return 8
 	default:
-		panic(fmt.Sprintf("Cbprefixed Cycle - got unknown op: %X", op))
+		return 0
 	}
 }

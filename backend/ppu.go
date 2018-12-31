@@ -229,6 +229,10 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	tileData := p.ram[0x8000:0x9000]
 	spriteHeight := p.getSpriteHeight()
 
+	if spriteHeight == 16 {
+		panic("SpriteHeight == 16 is not supported yet")
+	}
+
 	numSprites := 0
 
 	for i := 0; i < 40 && numSprites < 10; i++ {
@@ -318,13 +322,8 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 }
 
 func reverse(in byte) byte {
-	x := uint32(in)
-	x = ((x & 0x55555555) << 1) | ((x & 0xAAAAAAAA) >> 1)   // Swap _<>_
-	x = ((x & 0x33333333) << 2) | ((x & 0xCCCCCCCC) >> 2)   // Swap __<>__
-	x = ((x & 0x0F0F0F0F) << 4) | ((x & 0xF0F0F0F0) >> 4)   // Swap ____<>____
-	x = ((x & 0x00FF00FF) << 8) | ((x & 0xFF00FF00) >> 8)   // Swap ...
-	x = ((x & 0x0000FFFF) << 16) | ((x & 0xFFFF0000) >> 16) // Swap ...
-	return byte(x >> 24)
+	return (in & 0x1 << 7) | (in & 0x2 << 5) | (in & 0x4 << 3) | (in & 0x8 << 1) |
+		(in & 0x10 >> 1) | (in & 0x20 >> 3) | (in & 0x40 >> 5) | (in & 0x80 >> 7)
 }
 
 func (p *PPU) writeLY(lineNumber byte) {
@@ -335,9 +334,10 @@ func (p *PPU) writeLY(lineNumber byte) {
 
 		// If scanline coincidence interrupt is enabled
 		if p.ram[0xFF41]&0x40 > 0 {
-			// dispatch LCD stat interrupt
-			p.ram[0xFF0F] |= 2
+			p.dispatchLCDStatInterrupt()
 		}
+	} else {
+		p.ram[0xFF41] &^= 1 << 2
 	}
 }
 
@@ -353,16 +353,16 @@ func (p *PPU) setControllerMode(mode string) {
 	switch mode {
 	case "VBlank":
 		p.dispatchVBlankInterrupt()
-		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x1
+		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x1
 	case "HBlank":
-		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x0
+		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x0
 		if p.ram[0xFF41]&0x8 > 0 {
 			p.dispatchLCDStatInterrupt()
 		}
 	case "OAM":
-		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x2
+		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x2
 	case "PixelTransfer":
-		p.ram[0xFF41] = p.ram[0xFF41]&0xFC | 0x3
+		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x3
 	default:
 		panic(fmt.Sprintln("Got unexpected LCD controller mode: ", mode))
 	}
