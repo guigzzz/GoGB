@@ -115,10 +115,6 @@ func (c *CPU) Runner(debug bool) {
 			c.DecodeAndExecuteNext()
 		}
 
-		if c.PC == 0x3144 {
-			debugger.PrintDebugShort(c)
-		}
-
 		var increment uint64
 		if c.haltMode > 0 {
 			increment = 4

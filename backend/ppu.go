@@ -226,7 +226,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	pixels := [160]byte{}
 
 	attributes := p.getSpriteAttributes()
-	tileData := p.ram[0x8000:0x9000]
+	tileData := p.getSpriteData()
 	spriteHeight := p.getSpriteHeight()
 
 	if spriteHeight == 16 {
@@ -236,54 +236,45 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	numSprites := 0
 
 	for i := 0; i < 40 && numSprites < 10; i++ {
-		yPos := attributes[4*i]
-		if yPos == 0 || yPos > 144+16 {
-			// sprite is above the first line
-			// no need to render it
+
+		yPos := attributes[4*i] - 16
+		if yPos > lineNumber || lineNumber > yPos+spriteHeight {
 			continue
 		}
 
-		if yPos-16 <= lineNumber && lineNumber < yPos+spriteHeight-16 {
-			numSprites++
+		xPos := attributes[4*i+1]
+		if xPos == 0 || xPos == 159+8 {
+			continue
+		}
+		xPos -= 8
 
-			xPos := attributes[4*i+1]
-			if xPos == 0 || xPos >= 160+8 {
-				// sprite isn't in view, no point rendering it
-				// however still increment the number of sprites
-				// on that line
-				continue
-			}
+		numSprites++
+		tileIndex := attributes[4*i+2]
+		flags := attributes[4*i+3]
+		xFlipped := flags&0x20 > 0
+		yFlipped := flags&0x40 > 0
+		palette := p.getSpritePalette(flags)
 
-			rowInTile := lineNumber - yPos + 16
+		rowInTile := lineNumber - yPos
+		lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
+		if yFlipped {
+			lineDataIndex = uint(tileIndex)*16 + 2*7 - 2*uint(rowInTile)
+		}
+		lineData := tileData[lineDataIndex : lineDataIndex+2]
+		if xFlipped {
+			lineData[0] = reverse(lineData[0])
+			lineData[1] = reverse(lineData[1])
+		}
 
-			tileIndex := attributes[4*i+2]
-			flags := attributes[4*i+3]
+		for l := 0; l < 8; l++ {
+			msb := (lineData[1] >> (7 - byte(l))) & 1
+			lsb := (lineData[0] >> (7 - byte(l))) & 1
 
-			xFlipped := flags&0x20 > 0
-			// yFlipped := flags&0x40 > 0
+			colorCode := (msb << 1) | lsb
 
-			palette := p.getSpritePalette(flags)
-
-			lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
-			// if yFlipped {
-			// 	lineDataIndex = uint(tileIndex)*16 + 7 - 2*uint(rowInTile)
-			// }
-			lineData := tileData[lineDataIndex : lineDataIndex+2]
-			if xFlipped {
-				lineData[0] = reverse(lineData[0])
-				lineData[1] = reverse(lineData[1])
-			}
-
-			for l := 0; l < 8; l++ {
-				msb := (lineData[1] >> (7 - byte(l))) & 1
-				lsb := (lineData[0] >> (7 - byte(l))) & 1
-
-				colorCode := (msb << 1) | lsb
-
-				pos := xPos - 8 + byte(l)
-				if 0 <= pos && pos <= 159 {
-					pixels[pos] = mapColorToPalette(palette, colorCode)
-				}
+			pos := xPos + byte(l)
+			if 0 <= pos && pos <= 159 && colorCode > 0 && pixels[pos] == 0 {
+				pixels[pos] = mapColorToPalette(palette, colorCode)
 			}
 		}
 	}
@@ -361,6 +352,9 @@ func (p *PPU) setControllerMode(mode string) {
 		}
 	case "OAM":
 		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x2
+		// if p.ram[0xFF41]&0x20 > 0 {
+		// 	p.dispatchLCDStatInterrupt()
+		// }
 	case "PixelTransfer":
 		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x3
 	default:
@@ -389,6 +383,9 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 
 		switch {
 		case lineNumber < 144:
+
+			// p.setControllerMode("OAM")
+
 			background := p.getBackgroundPixels(lineNumber)
 			// window pixels := getWindowPixels
 			spritePixels := p.getSpritePixels(lineNumber)
