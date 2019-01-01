@@ -24,7 +24,7 @@ func TestRunBlarggTests(t *testing.T) {
 	go ppu.Renderer()
 	go cpu.Runner(false)
 
-	for cpu.PC != 0x06F1 {
+	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
 		time.Sleep(100 * time.Millisecond)
 	}
 
