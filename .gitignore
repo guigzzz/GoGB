@@ -1,2 +1,4 @@
 *.exe
+*.gb
+**/.DS_Store
 GoGB

@@ -93,7 +93,7 @@ func NewTestCPU() *CPU {
 	c.selectedRAMBank = 0
 
 	c.cartridgeROM = make([]byte, 1<<15)
-	c.cartridgeRAM = make([]byte, 1<<12)
+	c.cartridgeRAM = make([]byte, 1<<15)
 
 	return c
 }
