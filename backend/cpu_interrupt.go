@@ -50,12 +50,12 @@ func (c *CPU) CheckAndHandleInterrupts() {
 
 func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 
-	c.ram[0xFF04] = byte(c.cycleCounter / 256) // div
+	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
 
 	if c.timerPeriod == 0 {
 		c.ram[0xFF05] = 0
 		return
-	} else if cycleIncrement < c.timerPeriod-c.cycleCounter%c.timerPeriod {
+	} else if cycleIncrement < c.timerPeriod-c.cycleCounter&(c.timerPeriod-1) {
 		return
 	}
 
