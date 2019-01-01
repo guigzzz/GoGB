@@ -1,4 +1,4 @@
-# GoGB
+# GoGB ![TravisCI](https://travis-ci.com/guigzzz/GoGB.svg?branch=master)
 
 GoGB is a work-in-progress of a Gameboy emulator written in Go. The main objectives for this project are:
 - build a medium-large sized project in Go to become familiar with the language and the design patterns associated with it.
