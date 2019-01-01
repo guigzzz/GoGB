@@ -11,7 +11,7 @@ git:
 
 before_install:
   - sudo apt update
-  - sudo apt install libXcursor-devel
+  - sudo apt install libgl1-mesa-dev xorg-dev
 
 # Don't email me the results of the test runs.
 notifications:
