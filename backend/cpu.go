@@ -99,7 +99,11 @@ func NewTestCPU() *CPU {
 }
 
 func (c *CPU) Runner(debug bool) {
-	debugger := NewDebugHarness()
+
+	var debugger DebugHarness
+	if debug {
+		debugger = NewDebugHarness()
+	}
 	for {
 		if debug && c.haltMode == 0 {
 			debugger.PrintDebugShort(c)
