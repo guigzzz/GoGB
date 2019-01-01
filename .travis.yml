@@ -9,6 +9,10 @@ go:
 git:
   depth: 1
 
+before_install:
+  - sudo apt update
+  - sudo apt install libx11-dev
+
 # Don't email me the results of the test runs.
 notifications:
   email: false
