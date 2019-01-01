@@ -8,7 +8,7 @@ import (
 )
 
 const (
-	romPath = "../rom/cpu_instrs/cpu_instrs.gb"
+	romPath = "../rom/cpu_instrs.gb"
 )
 
 func TestRunBlarggTests(t *testing.T) {
@@ -42,6 +42,7 @@ func TestRunBlarggTests(t *testing.T) {
 	for i := range hash {
 		if hash[i] != trueHash[i] {
 			t.Errorf("Blargg test failed.")
+			return
 		}
 	}
 }
