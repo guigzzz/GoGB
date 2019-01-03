@@ -14,7 +14,6 @@ func init() {
 }
 
 func main() {
-
 	if len(os.Args) != 2 {
 		fmt.Println(fmt.Sprintf("Usage: ./%s <path to rom>", os.Args[0]))
 		os.Exit(0)
@@ -25,8 +24,10 @@ func main() {
 		panic(err)
 	}
 
-	cpu := backend.NewCPU(rom)
-	ppu := backend.NewPPU(cpu)
+	bus := backend.NewBus()
+
+	cpu := backend.NewCPU(rom, bus)
+	ppu := backend.NewPPU(cpu, bus)
 	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 
 	go ppu.Renderer()

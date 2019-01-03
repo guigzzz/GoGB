@@ -18,8 +18,9 @@ func TestRunBlarggTests(t *testing.T) {
 		panic(err)
 	}
 
-	cpu := NewCPU(rom)
-	ppu := NewPPU(cpu)
+	bus := NewBus()
+	cpu := NewCPU(rom, bus)
+	ppu := NewPPU(cpu, bus)
 
 	go ppu.Renderer()
 	go cpu.Runner(false)

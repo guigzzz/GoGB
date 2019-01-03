@@ -7,6 +7,7 @@ import (
 
 // CPU represents the current cpu state
 type CPU struct {
+	bus *Bus
 	reg [8]byte
 	SP  uint16 // stack pointer
 	PC  uint16 // program counter
@@ -36,8 +37,9 @@ type CPU struct {
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU(rom []byte) *CPU {
+func NewCPU(rom []byte, bus *Bus) *CPU {
 	c := new(CPU)
+	c.bus = bus
 
 	c.ram = make([]byte, 1<<16)
 
@@ -104,25 +106,32 @@ func (c *CPU) Runner(debug bool) {
 	if debug {
 		debugger = NewDebugHarness()
 	}
-	for {
-		if debug && c.haltMode == 0 {
-			debugger.PrintDebugShort(c)
-		}
 
-		c.CheckAndHandleInterrupts()
+	// signal to PPU we are ready to start
+	c.bus.cpuDoneChannel <- struct{}{}
 
-		if c.haltMode == 0 {
-			c.DecodeAndExecuteNext()
-		}
-
+	for allowance := range c.bus.allowanceChannel {
 		var increment uint64
-		if c.haltMode > 0 {
-			increment = 4
-		} else {
-			increment = uint64(c.FetchCycles())
+		for cycle := 0; cycle+int(increment) < allowance; cycle += int(increment) {
+			if debug && c.haltMode == 0 {
+				debugger.PrintDebugShort(c)
+			}
+
+			c.CheckAndHandleInterrupts()
+
+			if c.haltMode == 0 {
+				c.DecodeAndExecuteNext()
+			}
+
+			if c.haltMode > 0 {
+				increment = 4
+			} else {
+				increment = uint64(c.FetchCycles())
+			}
+			c.checkForTimerIncrementAndInterrupt(increment)
+			c.cycleCounter += increment
 		}
-		c.checkForTimerIncrementAndInterrupt(increment)
-		c.cycleCounter += increment
+		c.bus.cpuDoneChannel <- struct{}{} // tell PPU we are done
 	}
 }
 

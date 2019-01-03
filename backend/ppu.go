@@ -24,14 +24,16 @@ type PPU struct {
 	Image        *image.RGBA     // represents the current screen
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
+	bus          *Bus
 }
 
 // NewPPU creates a new PPU object
-func NewPPU(c *CPU) *PPU {
+func NewPPU(c *CPU, bus *Bus) *PPU {
 	p := new(PPU)
 	p.ram = c.ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
 	p.ImageMutex = new(sync.RWMutex)
+	p.bus = bus
 	return p
 }
 
@@ -362,14 +364,8 @@ func (p *PPU) setControllerMode(mode string) {
 	}
 }
 
+/*
 func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
-
-	// 114 clocks per line
-	// OAM search 20 clocks
-	// pixel transfer 43 blocks
-	// hblank 51 clocks
-
-	// 144 lines + 10 vblank
 
 	lineNumber := byte(0)
 
@@ -419,6 +415,58 @@ func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan 
 		}
 	}
 }
+*/
+func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan struct{}) {
+
+	for range frameTicker.C {
+
+		for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
+
+			<-p.bus.cpuDoneChannel
+			p.writeLY(lineNumber)
+			p.setControllerMode("OAM")
+			p.bus.allowanceChannel <- 20 * 4 // OAM search allowance
+
+			// OAM search
+
+			<-p.bus.cpuDoneChannel
+			p.setControllerMode("PixelTransfer")
+			p.bus.allowanceChannel <- 43 * 4 // pixel transfer allowance
+
+			// pixel transfer
+			background := p.getBackgroundPixels(lineNumber)
+			// window pixels := getWindowPixels
+			spritePixels := p.getSpritePixels(lineNumber)
+
+			for i := range background {
+				if spritePixels[i] > 0 {
+					p.screenBuffer[int(lineNumber)*160+i] = spritePixels[i]
+				} else {
+					p.screenBuffer[int(lineNumber)*160+i] = background[i]
+				}
+			}
+
+			<-p.bus.cpuDoneChannel
+			p.setControllerMode("HBlank")
+			p.bus.allowanceChannel <- 51 * 4 // HBlank allowance
+
+			// do nothing
+		}
+
+		canRenderScreen <- struct{}{}
+		<-p.bus.cpuDoneChannel
+		p.writeLY(144)
+		p.dispatchVBlankInterrupt()
+		p.setControllerMode("VBlank")
+		p.bus.allowanceChannel <- 10 * 114 * 4 // VBlank allowance
+
+		for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
+			<-p.bus.cpuDoneChannel
+			p.writeLY(lineNumber)
+			p.bus.allowanceChannel <- 10 * 114 * 4 // VBlank allowance
+		}
+	}
+}
 
 func getPixelColor(value byte) color.RGBA {
 	white := color.RGBA{255, 255, 255, 255}
@@ -455,9 +503,10 @@ func (p *PPU) writeBufferToImage() {
 func (p *PPU) Renderer() {
 
 	canRenderScreenChan := make(chan struct{})
-	lineTicker := time.NewTicker(108719 * time.Nanosecond)
+	// lineTicker := time.NewTicker(108719 * time.Nanosecond)
+	frameTicker := time.NewTicker(16666 * time.Microsecond)
 
-	go p.lineByLineRender(lineTicker, canRenderScreenChan)
+	go p.lineByLineRender(frameTicker, canRenderScreenChan)
 
 	for range canRenderScreenChan {
 		p.writeBufferToImage()
