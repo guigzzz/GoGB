@@ -458,12 +458,12 @@ func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan st
 		p.writeLY(144)
 		p.dispatchVBlankInterrupt()
 		p.setControllerMode("VBlank")
-		p.bus.allowanceChannel <- 10 * 114 * 4 // VBlank allowance
+		p.bus.allowanceChannel <- 114 * 4 // VBlank row allowance
 
 		for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
 			<-p.bus.cpuDoneChannel
 			p.writeLY(lineNumber)
-			p.bus.allowanceChannel <- 10 * 114 * 4 // VBlank allowance
+			p.bus.allowanceChannel <- 114 * 4 // VBlank row allowance
 		}
 	}
 }
