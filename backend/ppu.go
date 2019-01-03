@@ -239,8 +239,8 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	for i := 0; i < 40 && numSprites < 10; i++ {
 
-		yPos := attributes[4*i] - 16
-		if yPos > lineNumber || lineNumber > yPos+spriteHeight {
+		yPos := attributes[4*i]
+		if yPos > lineNumber+16 || lineNumber+16 > yPos+spriteHeight {
 			continue
 		}
 
@@ -248,7 +248,6 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		if xPos == 0 || xPos == 159+8 {
 			continue
 		}
-		xPos -= 8
 
 		numSprites++
 		tileIndex := attributes[4*i+2]
@@ -257,7 +256,13 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		yFlipped := flags&0x40 > 0
 		palette := p.getSpritePalette(flags)
 
-		rowInTile := lineNumber - yPos
+		var rowInTile byte
+		if yPos < 16 {
+			rowInTile = 16 - yPos + lineNumber
+		} else {
+			rowInTile = lineNumber - (yPos - 16)
+		}
+
 		lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
 		if yFlipped {
 			lineDataIndex = uint(tileIndex)*16 + 2*7 - 2*uint(rowInTile)
@@ -269,13 +274,16 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		}
 
 		for l := 0; l < 8; l++ {
+			if xPos < 8-byte(l) {
+				continue
+			}
 			msb := (lineData[1] >> (7 - byte(l))) & 1
 			lsb := (lineData[0] >> (7 - byte(l))) & 1
 
 			colorCode := (msb << 1) | lsb
 
-			pos := xPos + byte(l)
-			if 0 <= pos && pos <= 159 && colorCode > 0 && pixels[pos] == 0 {
+			pos := xPos - 8 + byte(l)
+			if pos <= 159 && colorCode > 0 {
 				pixels[pos] = mapColorToPalette(palette, colorCode)
 			}
 		}
