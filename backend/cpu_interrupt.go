@@ -52,15 +52,16 @@ func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 
 	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
 
+	modulo := c.cycleCounter & (c.timerPeriod - 1)
+
 	if c.timerPeriod == 0 {
 		c.ram[0xFF05] = 0
 		return
-	} else if cycleIncrement < c.timerPeriod-c.cycleCounter&(c.timerPeriod-1) {
+	} else if cycleIncrement < c.timerPeriod-modulo {
 		return
 	}
 
-	TIMA := c.ram[0xFF05]
-	if TIMA == 0xFF {
+	if c.ram[0xFF05] == 0xFF {
 
 		// write TMA into TIMA
 		c.ram[0xFF05] = c.ram[0xFF06]
@@ -69,6 +70,17 @@ func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 		c.ram[0xFF0F] |= 0x4
 	} else {
 		c.ram[0xFF05]++
+	}
+	if 2*c.timerPeriod-modulo < cycleIncrement {
+		if c.ram[0xFF05] == 0xFF {
+			// write TMA into TIMA
+			c.ram[0xFF05] = c.ram[0xFF06]
+
+			// write to IF to signal interrupt
+			c.ram[0xFF0F] |= 0x4
+		} else {
+			c.ram[0xFF05]++
+		}
 	}
 }
 

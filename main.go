@@ -1,9 +1,11 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"runtime"
 
 	"github.com/guigzzz/GoGB/backend"
@@ -14,12 +16,16 @@ func init() {
 }
 
 func main() {
-	if len(os.Args) != 2 {
-		fmt.Println(fmt.Sprintf("Usage: ./%s <path to rom>", os.Args[0]))
+
+	debug := flag.Bool("debug", false, "run the emulator in debug mode")
+	flag.Parse()
+
+	if len(flag.Args()) != 1 {
+		fmt.Println(fmt.Sprintf("Usage: ./%s <path to rom>", path.Base(os.Args[0])))
 		os.Exit(0)
 	}
 
-	rom, err := ioutil.ReadFile(os.Args[1])
+	rom, err := ioutil.ReadFile(flag.Arg(0))
 	if err != nil {
 		panic(err)
 	}
@@ -31,6 +37,6 @@ func main() {
 	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 
 	go ppu.Renderer()
-	go cpu.Runner(false)
+	go cpu.Runner(*debug)
 	screenRenderer.startRendering()
 }

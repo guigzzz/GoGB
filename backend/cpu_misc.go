@@ -47,6 +47,7 @@ func (c *CPU) JumpNZ(target uint16) {
 		c.Jump(target)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 4
 	}
 }
 
@@ -56,6 +57,7 @@ func (c *CPU) JumpZ(target uint16) {
 		c.Jump(target)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 4
 	}
 }
 
@@ -65,6 +67,7 @@ func (c *CPU) JumpNC(target uint16) {
 		c.Jump(target)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 4
 	}
 }
 
@@ -74,6 +77,7 @@ func (c *CPU) JumpC(target uint16) {
 		c.Jump(target)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 4
 	}
 }
 
@@ -93,6 +97,8 @@ func (c *CPU) JumpRelative(v byte) {
 func (c *CPU) JumpRelativeNZ(v byte) {
 	if !c.IsFlagSet(ZFlag) {
 		c.JumpRelative(v)
+	} else {
+		c.cycleCounter -= 4
 	}
 }
 
@@ -100,6 +106,8 @@ func (c *CPU) JumpRelativeNZ(v byte) {
 func (c *CPU) JumpRelativeZ(v byte) {
 	if c.IsFlagSet(ZFlag) {
 		c.JumpRelative(v)
+	} else {
+		c.cycleCounter -= 4
 	}
 }
 
@@ -107,6 +115,8 @@ func (c *CPU) JumpRelativeZ(v byte) {
 func (c *CPU) JumpRelativeNC(v byte) {
 	if !c.IsFlagSet(CFlag) {
 		c.JumpRelative(v)
+	} else {
+		c.cycleCounter -= 4
 	}
 }
 
@@ -114,6 +124,8 @@ func (c *CPU) JumpRelativeNC(v byte) {
 func (c *CPU) JumpRelativeC(v byte) {
 	if c.IsFlagSet(CFlag) {
 		c.JumpRelative(v)
+	} else {
+		c.cycleCounter -= 4
 	}
 }
 
@@ -130,6 +142,7 @@ func (c *CPU) RetNZ() {
 		c.Ret()
 	} else {
 		c.PC++
+		c.cycleCounter -= 12
 	}
 }
 
@@ -139,6 +152,7 @@ func (c *CPU) RetZ() {
 		c.Ret()
 	} else {
 		c.PC++
+		c.cycleCounter -= 12
 	}
 }
 
@@ -148,6 +162,7 @@ func (c *CPU) RetNC() {
 		c.Ret()
 	} else {
 		c.PC++
+		c.cycleCounter -= 12
 	}
 }
 
@@ -157,6 +172,7 @@ func (c *CPU) RetC() {
 		c.Ret()
 	} else {
 		c.PC++
+		c.cycleCounter -= 12
 	}
 }
 
@@ -177,6 +193,7 @@ func (c *CPU) CallNZ(v uint16) {
 		c.Call(v)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 12
 	}
 }
 
@@ -186,6 +203,7 @@ func (c *CPU) CallZ(v uint16) {
 		c.Call(v)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 12
 	}
 }
 
@@ -195,6 +213,7 @@ func (c *CPU) CallNC(v uint16) {
 		c.Call(v)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 12
 	}
 }
 
@@ -204,6 +223,7 @@ func (c *CPU) CallC(v uint16) {
 		c.Call(v)
 	} else {
 		c.PC += 3
+		c.cycleCounter -= 12
 	}
 }
 

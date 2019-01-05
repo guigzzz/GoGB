@@ -225,7 +225,8 @@ func (p *PPU) getSpriteHeight() byte {
 func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	// Implements OAM searching and sprite rendering
-	pixels := [160]byte{}
+	colorCodes := [160]byte{}
+	palettes := [160]byte{}
 
 	attributes := p.getSpriteAttributes()
 	tileData := p.getSpriteData()
@@ -240,12 +241,12 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	for i := 0; i < 40 && numSprites < 10; i++ {
 
 		yPos := attributes[4*i]
-		if yPos > lineNumber+16 || lineNumber+16 > yPos+spriteHeight {
+		if yPos > lineNumber+16 || lineNumber+16 >= yPos+spriteHeight {
 			continue
 		}
 
 		xPos := attributes[4*i+1]
-		if xPos == 0 || xPos == 159+8 {
+		if xPos == 0 {
 			continue
 		}
 
@@ -283,9 +284,19 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			colorCode := (msb << 1) | lsb
 
 			pos := xPos - 8 + byte(l)
-			if pos <= 159 && colorCode > 0 {
-				pixels[pos] = mapColorToPalette(palette, colorCode)
+			if pos <= 159 && colorCode > 0 && colorCodes[pos] == 0 {
+
+				colorCodes[pos] = colorCode
+				palettes[pos] = palette
+
 			}
+		}
+	}
+
+	pixels := [160]byte{}
+	for i, c := range colorCodes {
+		if c > 0 {
+			pixels[i] = mapColorToPalette(palettes[i], c)
 		}
 	}
 
@@ -511,7 +522,6 @@ func (p *PPU) writeBufferToImage() {
 func (p *PPU) Renderer() {
 
 	canRenderScreenChan := make(chan struct{})
-	// lineTicker := time.NewTicker(108719 * time.Nanosecond)
 	frameTicker := time.NewTicker(16666 * time.Microsecond)
 
 	go p.lineByLineRender(frameTicker, canRenderScreenChan)

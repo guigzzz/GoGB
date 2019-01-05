@@ -1000,8 +1000,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x45: //{BIT 0 L 0x45 2 [8]}
 		return 8
-	case 0x46: //{BIT 0 (HL) 0x46 2 [16]}
-		return 16
+	case 0x46: //{BIT 0 (HL) 0x46 2 [12]}
+		return 12
 	case 0x47: //{BIT 0 A 0x47 2 [8]}
 		return 8
 	case 0x48: //{BIT 1 B 0x48 2 [8]}
@@ -1016,8 +1016,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x4d: //{BIT 1 L 0x4d 2 [8]}
 		return 8
-	case 0x4e: //{BIT 1 (HL) 0x4e 2 [16]}
-		return 16
+	case 0x4e: //{BIT 1 (HL) 0x4e 2 [12]}
+		return 12
 	case 0x4f: //{BIT 1 A 0x4f 2 [8]}
 		return 8
 	case 0x50: //{BIT 2 B 0x50 2 [8]}
@@ -1032,8 +1032,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x55: //{BIT 2 L 0x55 2 [8]}
 		return 8
-	case 0x56: //{BIT 2 (HL) 0x56 2 [16]}
-		return 16
+	case 0x56: //{BIT 2 (HL) 0x56 2 [12]}
+		return 12
 	case 0x57: //{BIT 2 A 0x57 2 [8]}
 		return 8
 	case 0x58: //{BIT 3 B 0x58 2 [8]}
@@ -1048,8 +1048,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x5d: //{BIT 3 L 0x5d 2 [8]}
 		return 8
-	case 0x5e: //{BIT 3 (HL) 0x5e 2 [16]}
-		return 16
+	case 0x5e: //{BIT 3 (HL) 0x5e 2 [12]}
+		return 12
 	case 0x5f: //{BIT 3 A 0x5f 2 [8]}
 		return 8
 	case 0x60: //{BIT 4 B 0x60 2 [8]}
@@ -1064,8 +1064,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x65: //{BIT 4 L 0x65 2 [8]}
 		return 8
-	case 0x66: //{BIT 4 (HL) 0x66 2 [16]}
-		return 16
+	case 0x66: //{BIT 4 (HL) 0x66 2 [12]}
+		return 12
 	case 0x67: //{BIT 4 A 0x67 2 [8]}
 		return 8
 	case 0x68: //{BIT 5 B 0x68 2 [8]}
@@ -1080,8 +1080,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x6d: //{BIT 5 L 0x6d 2 [8]}
 		return 8
-	case 0x6e: //{BIT 5 (HL) 0x6e 2 [16]}
-		return 16
+	case 0x6e: //{BIT 5 (HL) 0x6e 2 [12]}
+		return 12
 	case 0x6f: //{BIT 5 A 0x6f 2 [8]}
 		return 8
 	case 0x70: //{BIT 6 B 0x70 2 [8]}
@@ -1096,8 +1096,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x75: //{BIT 6 L 0x75 2 [8]}
 		return 8
-	case 0x76: //{BIT 6 (HL) 0x76 2 [16]}
-		return 16
+	case 0x76: //{BIT 6 (HL) 0x76 2 [12]}
+		return 12
 	case 0x77: //{BIT 6 A 0x77 2 [8]}
 		return 8
 	case 0x78: //{BIT 7 B 0x78 2 [8]}
@@ -1112,8 +1112,8 @@ func getCbprefixedCycles(op byte) byte {
 		return 8
 	case 0x7d: //{BIT 7 L 0x7d 2 [8]}
 		return 8
-	case 0x7e: //{BIT 7 (HL) 0x7e 2 [16]}
-		return 16
+	case 0x7e: //{BIT 7 (HL) 0x7e 2 [12]}
+		return 12
 	case 0x7f: //{BIT 7 A 0x7f 2 [8]}
 		return 8
 	case 0x80: //{RES 0 B 0x80 2 [8]}

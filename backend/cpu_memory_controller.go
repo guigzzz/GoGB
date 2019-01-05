@@ -52,6 +52,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			fmt.Print(string(c.ram[0xFF01]))
 		} else if address == 0xFF46 {
 			c.DMA(value)
+			c.ram[0xFF46] = value
 		} else if address == 0xFF00 {
 			c.ram[0xFF00] = c.readKeyPressed(value)
 		} else if address == 0xFF07 {
@@ -113,7 +114,7 @@ func (c *CPU) handleBankSwitching(address uint16, value byte) {
 
 func (c *CPU) DMA(sourceAddress byte) {
 	blockAddress := uint16(sourceAddress) << 8
-	for i := uint16(0); i < 0x9F; i++ {
+	for i := uint16(0); i < 0x100; i++ {
 		c.ram[0xFE00+i] = c.ram[blockAddress+i]
 	}
 }
