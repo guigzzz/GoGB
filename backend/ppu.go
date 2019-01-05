@@ -165,7 +165,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	rowInTile := (yPos + lineNumber) % 8
 	tileRow := (yPos + lineNumber) / 8
 
-	for i := int(0); i < 160-int(xPos); i++ {
+	for i := 0; i < 160-int(xPos); i++ {
 
 		// compute in which background tile we fall in (in a 32 x 32 grid)
 		tileColumn := i / 8
@@ -196,7 +196,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
 		colorCode := (msb << 1) | lsb
 
-		pixels[i] = mapColorToPalette(p.getBGPalette(), colorCode)
+		pixels[int(xPos)+i] = mapColorToPalette(p.getBGPalette(), colorCode)
 	}
 
 	return pixels
