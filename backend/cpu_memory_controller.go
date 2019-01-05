@@ -28,6 +28,8 @@ func (c *CPU) readMemory(address uint16) byte {
 
 	} else if address == 0xFF00 {
 		return c.ram[0xFF00]
+	} else if 0xFEA0 <= address && address < 0xFF00 {
+		return 00
 	}
 	return c.ram[address]
 }
@@ -47,6 +49,8 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			c.cartridgeRAM[bankAddress] = value
 		}
 
+	} else if 0xFEA0 <= address && address < 0xFF00 {
+		// ignore
 	} else {
 		if address == 0xFF02 && value == 0x81 {
 			fmt.Print(string(c.ram[0xFF01]))

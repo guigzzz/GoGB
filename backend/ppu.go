@@ -392,6 +392,12 @@ func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan st
 
 	for range frameTicker.C {
 
+		if !p.lcdControlRegisterIsBitSet(lcdDisplayEnable) {
+			<-p.bus.cpuDoneChannel
+			p.bus.allowanceChannel <- 154 * 114 * 4
+			continue
+		}
+
 		for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
 
 			<-p.bus.cpuDoneChannel
@@ -407,14 +413,18 @@ func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan st
 
 			// pixel transfer
 			background := p.getBackgroundPixels(lineNumber)
-			// window pixels := getWindowPixels
+			window := p.getWindowPixels(lineNumber)
 			spritePixels := p.getSpritePixels(lineNumber)
 
 			for i := range background {
 				if spritePixels[i] > 0 {
 					p.screenBuffer[int(lineNumber)*160+i] = spritePixels[i]
 				} else {
-					p.screenBuffer[int(lineNumber)*160+i] = background[i]
+					if window[i] > 0 {
+						p.screenBuffer[int(lineNumber)*160+i] = window[i]
+					} else {
+						p.screenBuffer[int(lineNumber)*160+i] = background[i]
+					}
 				}
 			}
 
