@@ -39,7 +39,7 @@ func NewPPU(c *CPU, bus *Bus) *PPU {
 
 const (
 	bgDisplay                  = iota // (0=Off, 1=On)
-	bgJDisplayEnable                  // (0=Off, 1=On)
+	objDisplayEnable                  // (0=Off, 1=On)
 	objSize                           // (0=8x8, 1=8x16)
 	bgTileMapDisplaySelect            // (0=9800-9BFF, 1=9C00-9FFF)
 	bgWindowTileDataSelect            // (0=8800-97FF, 1=8000-8FFF)
@@ -155,6 +155,9 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	}
 
 	yPos, xPos := p.getWindowPosition()
+	if yPos > lineNumber {
+		return pixels
+	}
 
 	tileMap := p.getWindowTileMap()
 	tileData, interpretIndexAsSigned := p.getWindowTileData()
@@ -162,10 +165,10 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	rowInTile := (yPos + lineNumber) % 8
 	tileRow := (yPos + lineNumber) / 8
 
-	for i := byte(0); i < 160; i++ {
+	for i := int(0); i < 160-int(xPos); i++ {
 
 		// compute in which background tile we fall in (in a 32 x 32 grid)
-		tileColumn := (xPos + i) / 8
+		tileColumn := i / 8
 		tileIndex := uint(tileRow)*32 + uint(tileColumn)
 
 		// get the tile data index for that tile
@@ -187,7 +190,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
 		lineData := tileData[lineDataIndex : lineDataIndex+2]
 
-		pixelInLine := (xPos + i) % 8
+		pixelInLine := uint(i) % 8
 		msb := (lineData[1] >> (7 - pixelInLine)) & 1
 		lsb := (lineData[0] >> (7 - pixelInLine)) & 1
 
