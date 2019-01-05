@@ -232,10 +232,6 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	tileData := p.getSpriteData()
 	spriteHeight := p.getSpriteHeight()
 
-	if spriteHeight == 16 {
-		panic("SpriteHeight == 16 is not supported yet")
-	}
-
 	numSprites := 0
 
 	for i := 0; i < 40 && numSprites < 10; i++ {
@@ -262,6 +258,15 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			rowInTile = 16 - yPos + lineNumber
 		} else {
 			rowInTile = lineNumber - (yPos - 16)
+		}
+
+		if spriteHeight == 16 {
+			if rowInTile >= 8 {
+				tileIndex |= 1
+				rowInTile -= 8
+			} else {
+				tileIndex &= 0xFE
+			}
 		}
 
 		lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
@@ -383,58 +388,6 @@ func (p *PPU) setControllerMode(mode string) {
 	}
 }
 
-/*
-func (p *PPU) lineByLineRender(canRenderLine *time.Ticker, canRenderScreen chan struct{}) {
-
-	lineNumber := byte(0)
-
-	for range canRenderLine.C {
-
-		if !p.lcdControlRegisterIsBitSet(lcdDisplayEnable) {
-			continue
-		}
-
-		p.writeLY(lineNumber)
-
-		switch {
-		case lineNumber < 144:
-
-			// p.setControllerMode("OAM")
-
-			background := p.getBackgroundPixels(lineNumber)
-			// window pixels := getWindowPixels
-			spritePixels := p.getSpritePixels(lineNumber)
-
-			p.ImageMutex.Lock()
-			for i := range background {
-				if spritePixels[i] > 0 {
-					p.screenBuffer[int(lineNumber)*160+i] = spritePixels[i]
-				} else {
-					p.screenBuffer[int(lineNumber)*160+i] = background[i]
-				}
-			}
-			p.ImageMutex.Unlock()
-			lineNumber++
-
-			if lineNumber == 144 {
-				canRenderScreen <- struct{}{}
-				p.dispatchVBlankInterrupt()
-				p.setControllerMode("VBlank")
-			}
-
-		case lineNumber < 154:
-			lineNumber++
-
-		case lineNumber == 154:
-			lineNumber = 0
-		}
-
-		if lineNumber < 144 {
-			p.setControllerMode("HBlank")
-		}
-	}
-}
-*/
 func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan struct{}) {
 
 	for range frameTicker.C {
