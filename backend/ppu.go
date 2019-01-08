@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"sort"
 	"sync"
 	"time"
 )
@@ -225,19 +226,24 @@ func (p *PPU) getSpriteHeight() byte {
 	return 8
 }
 
+type Sprite struct {
+	position  int
+	xPos      byte
+	yPos      byte
+	tileIndex byte
+	palette   byte
+	xFlipped  bool
+	yFlipped  bool
+}
+
 func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 	// Implements OAM searching and sprite rendering
-	colorCodes := [160]byte{}
-	palettes := [160]byte{}
-
 	attributes := p.getSpriteAttributes()
-	tileData := p.getSpriteData()
 	spriteHeight := p.getSpriteHeight()
+	sprites := make([]Sprite, 0, 10)
 
-	numSprites := 0
-
-	for i := 0; i < 40 && numSprites < 10; i++ {
+	for i := 0; i < 40 && len(sprites) < 10; i++ {
 
 		yPos := attributes[4*i]
 		if yPos > lineNumber+16 || lineNumber+16 >= yPos+spriteHeight {
@@ -249,41 +255,55 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			continue
 		}
 
-		numSprites++
 		tileIndex := attributes[4*i+2]
 		flags := attributes[4*i+3]
 		xFlipped := flags&0x20 > 0
 		yFlipped := flags&0x40 > 0
 		palette := p.getSpritePalette(flags)
 
+		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped})
+	}
+
+	sort.Slice(sprites, func(i, j int) bool {
+		if sprites[i].xPos < sprites[j].xPos {
+			return true
+		} else if sprites[i].xPos == sprites[j].xPos && sprites[i].position < sprites[j].position {
+			return true
+		}
+		return false
+	})
+
+	pixels := [160]byte{}
+	tileData := p.getSpriteData()
+	for _, s := range sprites {
 		var rowInTile byte
-		if yPos < 16 {
-			rowInTile = 16 - yPos + lineNumber
+		if s.yPos < 16 {
+			rowInTile = 16 - s.yPos + lineNumber
 		} else {
-			rowInTile = lineNumber - (yPos - 16)
+			rowInTile = lineNumber - (s.yPos - 16)
 		}
 
 		if spriteHeight == 16 {
 			if rowInTile >= 8 {
-				tileIndex |= 1
+				s.tileIndex |= 1
 				rowInTile -= 8
 			} else {
-				tileIndex &= 0xFE
+				s.tileIndex &= 0xFE
 			}
 		}
 
-		lineDataIndex := uint(tileIndex)*16 + 2*uint(rowInTile)
-		if yFlipped {
-			lineDataIndex = uint(tileIndex)*16 + 2*7 - 2*uint(rowInTile)
+		lineDataIndex := uint(s.tileIndex)*16 + 2*uint(rowInTile)
+		if s.yFlipped {
+			lineDataIndex = uint(s.tileIndex)*16 + 2*7 - 2*uint(rowInTile)
 		}
 		lineData := tileData[lineDataIndex : lineDataIndex+2]
-		if xFlipped {
+		if s.xFlipped {
 			lineData[0] = reverse(lineData[0])
 			lineData[1] = reverse(lineData[1])
 		}
 
 		for l := 0; l < 8; l++ {
-			if xPos < 8-byte(l) {
+			if s.xPos < 8-byte(l) {
 				continue
 			}
 			msb := (lineData[1] >> (7 - byte(l))) & 1
@@ -291,20 +311,10 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 			colorCode := (msb << 1) | lsb
 
-			pos := xPos - 8 + byte(l)
-			if pos <= 159 && colorCode > 0 && colorCodes[pos] == 0 {
-
-				colorCodes[pos] = colorCode
-				palettes[pos] = palette
-
+			pos := s.xPos - 8 + byte(l)
+			if pos <= 159 && pixels[pos] == 0 {
+				pixels[pos] = mapColorToPalette(s.palette, colorCode)
 			}
-		}
-	}
-
-	pixels := [160]byte{}
-	for i, c := range colorCodes {
-		if c > 0 {
-			pixels[i] = mapColorToPalette(palettes[i], c)
 		}
 	}
 

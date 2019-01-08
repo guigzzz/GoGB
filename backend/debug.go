@@ -112,7 +112,8 @@ func (d *DebugHarness) PrintDebugShort(c *CPU) {
 	opStr = strings.Replace(opStr, "a16", fmt.Sprintf("0x%0.2X%0.2X", c.readMemory(c.PC+2), c.readMemory(c.PC+1)), -1)
 	opStr = strings.Replace(opStr, "(HL", fmt.Sprintf("(0x%0.4X", c.ReadHL()), -1)
 
-	fmt.Printf("%s | PC: 0x%0.4X\n", opStr, c.PC)
+	fmt.Printf("%20s | AF: 0x%0.4X | BC: 0x%0.4X | DE: 0x%0.4X | HL: 0x%0.4X | PC: 0x%0.4X\n",
+		opStr, c.Readdouble(A, F), c.Readdouble(B, C), c.Readdouble(D, E), c.Readdouble(H, L), c.PC)
 }
 
 func (d *DebugHarness) RecordNextExercisedOp(c *CPU) {
