@@ -114,7 +114,7 @@ func (c *CPU) Runner(debug bool) {
 		var increment uint64
 		for cycle := 0; cycle+int(increment) < allowance; cycle += int(increment) {
 			if debug && c.haltMode == 0 {
-				debugger.PrintDebugShort(c)
+				debugger.PrintDebug(c)
 			}
 
 			c.CheckAndHandleInterrupts()
@@ -133,11 +133,6 @@ func (c *CPU) Runner(debug bool) {
 		}
 		c.bus.cpuDoneChannel <- struct{}{} // tell PPU we are done
 	}
-}
-
-// GetRAM exposes the c.ram member
-func (c *CPU) GetRAM() []byte {
-	return c.ram
 }
 
 func (c *CPU) getCartridgeRAMSize() uint32 {

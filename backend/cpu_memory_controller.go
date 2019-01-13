@@ -64,7 +64,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			newValue := value & 0x7
 			oldValue := c.ram[address]
 			c.handleTimer(newValue, oldValue)
-			c.ram[address] = newValue
+			c.ram[address] = newValue | 0xF8
 
 		} else if address == 0xFF04 {
 			// when DIV is written
@@ -118,7 +118,7 @@ func (c *CPU) handleBankSwitching(address uint16, value byte) {
 
 func (c *CPU) DMA(sourceAddress byte) {
 	blockAddress := uint16(sourceAddress) << 8
-	for i := uint16(0); i < 0x100; i++ {
+	for i := uint16(0); i < 0xA0; i++ {
 		c.ram[0xFE00+i] = c.ram[blockAddress+i]
 	}
 }
