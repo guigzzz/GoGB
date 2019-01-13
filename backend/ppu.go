@@ -147,15 +147,15 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	}
 
 	yPos, xPos := p.getWindowPosition()
-	if yPos > lineNumber {
+	if yPos > lineNumber || xPos > 159 {
 		return pixels
 	}
 
 	tileMap := p.getWindowTileMap()
 	tileData, interpretIndexAsSigned := p.getWindowTileData()
 
-	rowInTile := (yPos + lineNumber) % 8
-	tileRow := (yPos + lineNumber) / 8
+	rowInTile := (lineNumber - yPos) % 8
+	tileRow := (lineNumber - yPos) / 8
 
 	for i := 0; i < 160-int(xPos); i++ {
 
