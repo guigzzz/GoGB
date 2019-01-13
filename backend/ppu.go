@@ -17,8 +17,6 @@ type PPU struct {
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
 	bus          *Bus
-
-	irq bool
 }
 
 // NewPPU creates a new PPU object

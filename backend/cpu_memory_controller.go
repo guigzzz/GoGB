@@ -141,7 +141,8 @@ func (c *CPU) readKeyPressed(code byte) byte {
 		if c.KeyPressedMap["A"] {
 			regValue &^= 0x1
 		}
-	} else if code&0x10 == 0 { // 0b1110_1111
+	}
+	if code&0x10 == 0 { // 0b1110_1111
 		if c.KeyPressedMap["down"] {
 			regValue &^= 0x8
 		}

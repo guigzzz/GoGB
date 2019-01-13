@@ -57,10 +57,7 @@ func (p *PPU) setControllerMode(modeString string) {
 
 	if mode, ok := modeStringToNumber[modeString]; ok {
 
-		irq := p.irq
-		p.irq = p.shouldRaiseSTATInterrupt(mode)
-
-		if !irq && p.irq {
+		if p.shouldRaiseSTATInterrupt(mode) {
 			p.dispatchLCDStatInterrupt()
 		}
 
