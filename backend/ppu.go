@@ -9,15 +9,6 @@ import (
 	"time"
 )
 
-// Bit 7 - LCD Display Enable             (0=Off, 1=On)
-// Bit 6 - Window Tile Map Display Select (0=9800-9BFF, 1=9C00-9FFF)
-// Bit 5 - Window Display Enable          (0=Off, 1=On)
-// Bit 4 - BG & Window Tile Data Select   (0=8800-97FF, 1=8000-8FFF)
-// Bit 3 - BG Tile Map Display Select     (0=9800-9BFF, 1=9C00-9FFF)
-// Bit 2 - OBJ (Sprite) Size              (0=8x8, 1=8x16)
-// Bit 1 - OBJ (Sprite) Display Enable    (0=Off, 1=On)
-// Bit 0 - BG Display (for CGB see below) (0=Off, 1=On)
-
 // PPU represents the pixel processing unit
 // contains references to ram sections containing video relevant data
 type PPU struct {
@@ -26,6 +17,8 @@ type PPU struct {
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
 	bus          *Bus
+
+	irq bool
 }
 
 // NewPPU creates a new PPU object
@@ -49,7 +42,7 @@ const (
 	lcdDisplayEnable                  // (0=Off, 1=On)
 )
 
-func (p *PPU) lcdControlRegisterIsBitSet(bitnum uint) bool {
+func (p *PPU) LCDCBitSet(bitnum uint) bool {
 	if bitnum > 7 {
 		panic(fmt.Sprintf("Got unexpected bit number %d higher than 7 (max for byte)", bitnum))
 	}
@@ -57,7 +50,7 @@ func (p *PPU) lcdControlRegisterIsBitSet(bitnum uint) bool {
 }
 
 func (p *PPU) getBackgroundTileData() ([]byte, bool) {
-	if p.lcdControlRegisterIsBitSet(bgWindowTileDataSelect) {
+	if p.LCDCBitSet(bgWindowTileDataSelect) {
 		return p.ram[0x8000 : 0x8FFF+1], false
 	}
 	return p.ram[0x8800 : 0x97FF+1], true
@@ -68,14 +61,14 @@ func (p *PPU) getWindowTileData() ([]byte, bool) {
 }
 
 func (p *PPU) getBackgroundTileMap() []byte {
-	if p.lcdControlRegisterIsBitSet(bgTileMapDisplaySelect) {
+	if p.LCDCBitSet(bgTileMapDisplaySelect) {
 		return p.ram[0x9C00 : 0x9FFF+1]
 	}
 	return p.ram[0x9800 : 0x9BFF+1]
 }
 
 func (p *PPU) getWindowTileMap() []byte {
-	if p.lcdControlRegisterIsBitSet(windowTileMapDisplaySelect) {
+	if p.LCDCBitSet(windowTileMapDisplaySelect) {
 		return p.ram[0x9C00 : 0x9FFF+1]
 	}
 	return p.ram[0x9800 : 0x9BFF+1]
@@ -96,7 +89,7 @@ func (p *PPU) getScroll() (byte, byte) {
 func (p *PPU) getBackgroundPixels(lineNumber byte) [160]byte {
 
 	pixels := [160]byte{}
-	if !p.lcdControlRegisterIsBitSet(bgDisplay) {
+	if !p.LCDCBitSet(bgDisplay) {
 		return pixels
 	}
 
@@ -151,7 +144,7 @@ func (p *PPU) getWindowPosition() (byte, byte) {
 func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
 	pixels := [160]byte{}
-	if !p.lcdControlRegisterIsBitSet(windowDisplayEnable) {
+	if !p.LCDCBitSet(windowDisplayEnable) {
 		return pixels
 	}
 
@@ -220,7 +213,7 @@ func (p *PPU) getSpritePalette(paletteNumber byte) byte {
 }
 
 func (p *PPU) getSpriteHeight() byte {
-	if p.lcdControlRegisterIsBitSet(objSize) {
+	if p.LCDCBitSet(objSize) {
 		return 16
 	}
 	return 8
@@ -296,18 +289,19 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		if s.yFlipped {
 			lineDataIndex = uint(s.tileIndex)*16 + 2*7 - 2*uint(rowInTile)
 		}
-		lineData := tileData[lineDataIndex : lineDataIndex+2]
+		lsbs := tileData[lineDataIndex]
+		msbs := tileData[lineDataIndex+1]
 		if s.xFlipped {
-			lineData[0] = reverse(lineData[0])
-			lineData[1] = reverse(lineData[1])
+			lsbs = reverse(lsbs)
+			msbs = reverse(msbs)
 		}
 
 		for l := 0; l < 8; l++ {
 			if s.xPos < 8-byte(l) {
 				continue
 			}
-			msb := (lineData[1] >> (7 - byte(l))) & 1
-			lsb := (lineData[0] >> (7 - byte(l))) & 1
+			msb := (msbs >> (7 - byte(l))) & 1
+			lsb := (lsbs >> (7 - byte(l))) & 1
 
 			colorCode := (msb << 1) | lsb
 
@@ -318,36 +312,6 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		}
 	}
 
-	// sprite data @ 8000-8FFF
-	// sprite attributes in OAM @ OAM @ FE00-FE9F
-	// OAM is divided into 40 4-byte blocks each of which corresponds to a sprite
-
-	// Byte0  Y position on the screen
-	// Byte1  X position on the screen
-	// Byte2  Pattern number 0-255 [notice that unlike tile numbers, sprite
-	// 		pattern numbers are unsigned]
-	// Byte3  Flags:
-	// 		Bit7  Priority
-	// 			Sprite is displayed in front of the window if this bit
-	// 			is set to 1. Otherwise, sprite is shown behind the
-	// 			window but in front of the background.
-	// 		Bit6  Y flip
-	// 			Sprite pattern is flipped vertically if this bit is
-	// 			set to 1.
-	// 		Bit5  X flip
-	// 			Sprite pattern is flipped horizontally if this bit is
-	// 			set to 1.
-	// 		Bit4  Palette number
-	// 			Sprite colors are taken from OBJ1PAL (FF49) if this bit is
-	// 			set to 1 and from OBJ0PAL (FF48) otherwise.
-
-	// Todo check sprite size
-	// if in 8x16 mode then pattern number of upper tile is pattern_number & 0xFE
-	// pattern number of lower tile is pattern_number | 0x01
-
-	// For each sprite in RAM, check if it has pixels that need to be drawn on that line
-	// and that we have so far drawn less than 10
-
 	return pixels
 }
 
@@ -356,56 +320,11 @@ func reverse(in byte) byte {
 		(in & 0x10 >> 1) | (in & 0x20 >> 3) | (in & 0x40 >> 5) | (in & 0x80 >> 7)
 }
 
-func (p *PPU) writeLY(lineNumber byte) {
-	p.ram[0xFF44] = lineNumber
-
-	if lineNumber == p.ram[0xFF45] { // CMPLINE
-		p.ram[0xFF41] |= 1 << 2
-
-		// If scanline coincidence interrupt is enabled
-		if p.ram[0xFF41]&0x40 > 0 {
-			p.dispatchLCDStatInterrupt()
-		}
-	} else {
-		p.ram[0xFF41] &^= 1 << 2
-	}
-}
-
-func (p *PPU) dispatchVBlankInterrupt() {
-	p.ram[0xFF0F] |= 1
-}
-
-func (p *PPU) dispatchLCDStatInterrupt() {
-	p.ram[0xFF0F] |= 2
-}
-
-func (p *PPU) setControllerMode(mode string) {
-	switch mode {
-	case "VBlank":
-		p.dispatchVBlankInterrupt()
-		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x1
-	case "HBlank":
-		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x0
-		if p.ram[0xFF41]&0x8 > 0 {
-			p.dispatchLCDStatInterrupt()
-		}
-	case "OAM":
-		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x2
-		// if p.ram[0xFF41]&0x20 > 0 {
-		// 	p.dispatchLCDStatInterrupt()
-		// }
-	case "PixelTransfer":
-		p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 0x3
-	default:
-		panic(fmt.Sprintln("Got unexpected LCD controller mode: ", mode))
-	}
-}
-
 func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan struct{}) {
 
 	for range frameTicker.C {
 
-		if !p.lcdControlRegisterIsBitSet(lcdDisplayEnable) {
+		if !p.LCDCBitSet(lcdDisplayEnable) {
 			<-p.bus.cpuDoneChannel
 			p.bus.allowanceChannel <- 154 * 114 * 4
 			continue
@@ -498,7 +417,7 @@ func (p *PPU) writeBufferToImage() {
 func (p *PPU) Renderer() {
 
 	canRenderScreenChan := make(chan struct{})
-	frameTicker := time.NewTicker(16666 * time.Microsecond)
+	frameTicker := time.NewTicker(time.Second / 60)
 
 	go p.lineByLineRender(frameTicker, canRenderScreenChan)
 
