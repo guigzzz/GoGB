@@ -73,6 +73,8 @@ func (p *PPU) setControllerMode(modeString string) {
 
 		if modeString != "PixelTransfer" {
 			panic(fmt.Sprintln("Got unexpected LCD controller mode: ", modeString))
+		} else {
+			p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 3
 		}
 	}
 }

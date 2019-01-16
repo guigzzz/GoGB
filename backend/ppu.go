@@ -143,7 +143,10 @@ func (p *PPU) getWindowPosition() (byte, byte) {
 
 func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
-	pixels := [160]byte{}
+	pixels := [160]byte{4}
+	for i := 0; i < 160; i++ {
+		pixels[i] = 4
+	}
 	if !p.LCDCBitSet(windowDisplayEnable) {
 		return pixels
 	}
@@ -227,12 +230,17 @@ type Sprite struct {
 	palette   byte
 	xFlipped  bool
 	yFlipped  bool
+	priority  bool
 }
 
-func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
+func (p *PPU) searchOAM(lineNumber byte) {
+
+}
+
+func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool) {
 
 	if !p.LCDCBitSet(objDisplayEnable) {
-		return [160]byte{}
+		return [160]byte{}, [160]byte{}, [160]bool{}
 	}
 
 	// Implements OAM searching and sprite rendering
@@ -257,8 +265,9 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 		xFlipped := flags&0x20 > 0
 		yFlipped := flags&0x40 > 0
 		palette := p.getSpritePalette(flags)
+		priority := flags&0x80 > 0
 
-		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped})
+		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
 	}
 
 	sort.Slice(sprites, func(i, j int) bool {
@@ -271,6 +280,8 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 	})
 
 	pixels := [160]byte{}
+	palettes := [160]byte{}
+	priorities := [160]bool{}
 	tileData := p.getSpriteData()
 	for _, s := range sprites {
 		var rowInTile byte
@@ -311,12 +322,14 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
 			pos := s.xPos - 8 + byte(l)
 			if pos <= 159 && pixels[pos] == 0 && colorCode > 0 {
-				pixels[pos] = mapColorToPalette(s.palette, colorCode)
+				pixels[pos] = colorCode
+				palettes[pos] = s.palette
+				priorities[pos] = s.priority
 			}
 		}
 	}
 
-	return pixels
+	return pixels, palettes, priorities
 }
 
 func reverse(in byte) byte {
@@ -350,14 +363,24 @@ func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan st
 			// pixel transfer
 			background := p.getBackgroundPixels(lineNumber)
 			window := p.getWindowPixels(lineNumber)
-			spritePixels := p.getSpritePixels(lineNumber)
+			sprites, palettes, priorities := p.getSpritePixels(lineNumber)
 
 			for i := range background {
-				if spritePixels[i] > 0 {
-					p.screenBuffer[int(lineNumber)*160+i] = spritePixels[i]
+				if priorities[i] {
+					if sprites[i] > 0 {
+						p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
+					} else {
+						if window[i] < 4 {
+							p.screenBuffer[int(lineNumber)*160+i] = window[i]
+						} else {
+							p.screenBuffer[int(lineNumber)*160+i] = background[i]
+						}
+					}
 				} else {
-					if window[i] > 0 {
+					if window[i] < 4 {
 						p.screenBuffer[int(lineNumber)*160+i] = window[i]
+					} else if sprites[i] > 0 {
+						p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
 					} else {
 						p.screenBuffer[int(lineNumber)*160+i] = background[i]
 					}
