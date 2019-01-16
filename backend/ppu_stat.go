@@ -23,6 +23,9 @@ func (p *PPU) writeLY(lineNumber byte) {
 
 	if p.coincidence() {
 		p.ram[0xFF41] |= 1 << 2
+		if p.interruptLYCEnabled() {
+			p.dispatchLCDStatInterrupt()
+		}
 	} else {
 		p.ram[0xFF41] &^= 1 << 2
 	}
@@ -57,7 +60,10 @@ func (p *PPU) setControllerMode(modeString string) {
 
 	if mode, ok := modeStringToNumber[modeString]; ok {
 
-		if p.shouldRaiseSTATInterrupt(mode) {
+		irq := p.irq
+		p.irq = p.shouldRaiseSTATInterrupt(mode)
+
+		if !irq && p.irq {
 			p.dispatchLCDStatInterrupt()
 		}
 
