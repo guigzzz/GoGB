@@ -231,6 +231,10 @@ type Sprite struct {
 
 func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 
+	if !p.LCDCBitSet(objDisplayEnable) {
+		return [160]byte{}
+	}
+
 	// Implements OAM searching and sprite rendering
 	attributes := p.getSpriteAttributes()
 	spriteHeight := p.getSpriteHeight()
@@ -306,7 +310,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) [160]byte {
 			colorCode := (msb << 1) | lsb
 
 			pos := s.xPos - 8 + byte(l)
-			if pos <= 159 && pixels[pos] == 0 {
+			if pos <= 159 && pixels[pos] == 0 && colorCode > 0 {
 				pixels[pos] = mapColorToPalette(s.palette, colorCode)
 			}
 		}
