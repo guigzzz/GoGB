@@ -25,10 +25,10 @@ go get && go build
     - [x] learn how to draw graphics in Go + basic implementation
     - [x] implement draw background
     - [x] implement draw sprites
-    - [ ] implement draw Window
+    - [x] implement draw Window
 - [x] Advanced tests: get the backend to pass correctness and timing tests
-    - [ ] Run blargg tests as a standard go test
-    - [ ] Automatically run blargg tests on commit
-- [ ] Robust graphics implementation
+    - [x] Run blargg tests as a standard go test
+    - [x] Automatically run blargg tests on commit
+- [x] Robust graphics implementation
     - [x] Tetris playable
-    - [ ] Super Mario Land playable
+    - [x] Super Mario Land playable
