@@ -72,6 +72,8 @@ func NewScreenRenderer(p *backend.PPU, c *backend.CPU, width, height int) *Scree
 		nk.NkStyleSetFont(s.ctx, sansFont.Handle())
 	}
 
+	fmt.Println("[GoGB] Initialised")
+
 	return s
 }
 
@@ -144,12 +146,10 @@ func keyCallbackFactory(c *backend.CPU) glfw.KeyCallback {
 		defer c.KeyPressedMapLock.Unlock()
 
 		if keyName, ok := keyMap[key]; ok && action == glfw.Press {
-			fmt.Println("Pressed: ", keyName)
 			c.KeyPressedMap[keyName] = true
 		}
 
 		if keyName, ok := keyMap[key]; ok && action == glfw.Release {
-			fmt.Println("Pressed: ", keyName)
 			c.KeyPressedMap[keyName] = false
 		}
 	}

@@ -233,10 +233,6 @@ type Sprite struct {
 	priority  bool
 }
 
-func (p *PPU) searchOAM(lineNumber byte) {
-
-}
-
 func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool) {
 
 	if !p.LCDCBitSet(objDisplayEnable) {
@@ -265,7 +261,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 		xFlipped := flags&0x20 > 0
 		yFlipped := flags&0x40 > 0
 		palette := p.getSpritePalette(flags)
-		priority := flags&0x80 > 0
+		priority := flags&0x80 == 0
 
 		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
 	}
@@ -366,23 +362,15 @@ func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan st
 			sprites, palettes, priorities := p.getSpritePixels(lineNumber)
 
 			for i := range background {
-				if priorities[i] {
-					if sprites[i] > 0 {
-						p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
-					} else {
-						if window[i] < 4 {
-							p.screenBuffer[int(lineNumber)*160+i] = window[i]
-						} else {
-							p.screenBuffer[int(lineNumber)*160+i] = background[i]
-						}
-					}
+				if window[i] < 4 {
+					p.screenBuffer[int(lineNumber)*160+i] = window[i]
 				} else {
-					if window[i] < 4 {
-						p.screenBuffer[int(lineNumber)*160+i] = window[i]
-					} else if sprites[i] > 0 {
+					p.screenBuffer[int(lineNumber)*160+i] = background[i]
+				}
+
+				if sprites[i] > 0 {
+					if priorities[i] || p.screenBuffer[int(lineNumber)*160+i] == 0 {
 						p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
-					} else {
-						p.screenBuffer[int(lineNumber)*160+i] = background[i]
 					}
 				}
 			}
@@ -451,56 +439,4 @@ func (p *PPU) Renderer() {
 	for range canRenderScreenChan {
 		p.writeBufferToImage()
 	}
-}
-
-func (p *PPU) DumpBackground() image.Image {
-	image := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{255, 255}})
-
-	tileMap := p.getBackgroundTileMap()
-	tileData, interpretIndexAsSigned := p.getBackgroundTileData()
-
-	for i := 0; i < 32; i++ {
-		for j := 0; j < 32; j++ {
-
-			index := i*32 + j
-			tileMapIndex := tileMap[index]
-
-			if interpretIndexAsSigned {
-				tileMapIndex ^= 0x80
-			}
-
-			data := tileData[uint(tileMapIndex)*16 : uint(tileMapIndex+1)*16]
-
-			for k := 0; k < 8; k++ {
-
-				lineData := data[k*2 : (k+1)*2]
-
-				for l := 0; l < 8; l++ {
-
-					msb := (lineData[1] >> (7 - byte(l))) & 1
-					lsb := (lineData[0] >> (7 - byte(l))) & 1
-
-					colorCode := (msb << 1) | lsb
-
-					pixel := mapColorToPalette(p.getBGPalette(), colorCode)
-					image.SetRGBA(j*8+l, i*8+k, getPixelColor(pixel))
-				}
-			}
-
-		}
-	}
-
-	scrollY, scrollX := p.getScroll()
-
-	red := color.RGBA{255, 0, 0, 255}
-	for i := byte(0); i < 160; i++ {
-		image.SetRGBA(int(scrollX+i), int(scrollY), red)
-		image.SetRGBA(int(scrollX+i), int(scrollY+143), red)
-	}
-	for j := byte(0); j < 144; j++ {
-		image.SetRGBA(int(scrollX), int(scrollY+j), red)
-		image.SetRGBA(int(scrollX+159), int(scrollY+j), red)
-	}
-
-	return image
 }
