@@ -70,6 +70,8 @@ func NewTestCPU() *CPU {
 	c := new(CPU)
 	c.ram = make([]byte, 1<<16)
 
+	c.mbc = NewMBC0(make([]byte, 1<<15))
+
 	return c
 }
 

@@ -21,12 +21,14 @@ func TestLoad(t *testing.T) {
 func TestLoadHL(t *testing.T) {
 	c := NewTestCPU()
 
-	c.ram[0] = 5
+	c.Writedouble(H, L, 0xC0FF)
+
+	c.ram[c.ReadHL()] = 5
 	c.LoadHL(A)
 	assert.Equal(t, c.reg[A], byte(5))
 
 	c.reg[A] = 25
-	c.Writedouble(H, L, 0xA000)
+	c.Writedouble(H, L, 0xC000)
 	c.StoreReg(A)
 	assert.Equal(t, c.ram[c.ReadHL()], byte(25))
 }

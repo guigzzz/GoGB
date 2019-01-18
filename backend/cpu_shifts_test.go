@@ -19,7 +19,7 @@ func TestShiftLeftArithmeticReg(t *testing.T) {
 func TestShiftLeftArithmeticHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[D] = 0x80
-	c.Writedouble(H, L, 0xA000)
+	c.Writedouble(H, L, 0xC000)
 	c.writeMemory(c.ReadHL(), 0xFF)
 
 	c.ShiftLeftArithmeticHL()
@@ -40,7 +40,7 @@ func TestShiftRightArithmeticReg(t *testing.T) {
 func TestShiftRightArithmeticHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x8A
-	c.Writedouble(H, L, 0xA000)
+	c.Writedouble(H, L, 0xC000)
 	c.writeMemory(c.ReadHL(), 0x01)
 
 	c.ShiftRightArithmeticHL()
@@ -61,7 +61,7 @@ func TestShiftRightLogicalReg(t *testing.T) {
 func TestShiftRightLogicalHL(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x01
-	c.Writedouble(H, L, 0xA000)
+	c.Writedouble(H, L, 0xC000)
 	c.writeMemory(c.ReadHL(), 0xFF)
 
 	c.ShiftRightLogicalHL()
