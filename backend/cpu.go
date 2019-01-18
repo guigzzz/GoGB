@@ -14,13 +14,7 @@ type CPU struct {
 	ram []byte // 64 KB ram
 	IME bool   // interrupt master enable
 
-	cartridgeROM        []byte
-	cartridgeRAM        []byte
-	cartridgeRAMEnabled bool
-	ROMMode             bool
-	selectedROMBank     byte // points to the currently switched rom bank
-	selectedRAMBank     byte // points to the currently switched ram bank
-	mbcType             byte // memory bank controller type (0, 1, etc)
+	mbc MBC // memory bank controller
 
 	KeyPressedMap     map[string]bool
 	KeyPressedMapLock *sync.RWMutex
@@ -43,22 +37,7 @@ func NewCPU(rom []byte, bus *Bus) *CPU {
 
 	c.ram = make([]byte, 1<<16)
 
-	// copy first 16KB of data into the ram
-	for i := 0; i < (1 << 14); i++ {
-		c.ram[i] = rom[i]
-	}
-
-	c.cartridgeROM = rom
-	c.cartridgeRAM = make([]byte, c.getCartridgeRAMSize())
-
-	mbc := c.ram[0x147]
-	if mbc > 1 {
-		panic("GoGB currently only supports roms using mbc1")
-	}
-	c.mbcType = mbc
-
-	c.selectedROMBank = 1
-	c.selectedRAMBank = 0
+	c.mbc = getMemoryControllerFrom(rom)
 
 	c.writeMemory(0xFF40, 0x91)
 	c.writeMemory(0xFF47, 0xFC)
@@ -90,12 +69,6 @@ func NewCPU(rom []byte, bus *Bus) *CPU {
 func NewTestCPU() *CPU {
 	c := new(CPU)
 	c.ram = make([]byte, 1<<16)
-
-	c.selectedROMBank = 1
-	c.selectedRAMBank = 0
-
-	c.cartridgeROM = make([]byte, 1<<15)
-	c.cartridgeRAM = make([]byte, 1<<15)
 
 	return c
 }
@@ -133,39 +106,6 @@ func (c *CPU) Runner(debug bool) {
 		}
 		c.bus.cpuDoneChannel <- struct{}{} // tell PPU we are done
 	}
-}
-
-func (c *CPU) getCartridgeRAMSize() uint32 {
-	switch c.ram[0x0149] {
-	case 0:
-		return 0
-	case 1:
-		return 1 << 11
-	case 2:
-		return 1 << 13
-	case 3:
-		return 1 << 15
-	case 4:
-		return 1 << 17
-	case 5:
-		return 1 << 16
-	default:
-		panic(fmt.Sprintf("Got unexpected RAM size index: %v", c.ram[0x0149]))
-	}
-}
-
-func (c *CPU) String() string {
-	ret := "CPU registers:\n" +
-		fmt.Sprintf("A: 0x%0.2X, F: 0x%0.2X, (AF: 0x%0.4X)\n", c.reg[A], c.reg[F], c.ReadAF()) +
-		fmt.Sprintf("B: 0x%0.2X, C: 0x%0.2X, (BC: 0x%0.4X)\n", c.reg[B], c.reg[C], c.ReadBC()) +
-		fmt.Sprintf("D: 0x%0.2X, E: 0x%0.2X, (DE: 0x%0.4X)\n", c.reg[D], c.reg[E], c.ReadDE()) +
-		fmt.Sprintf("H: 0x%0.2X, L: 0x%0.2X, (HL: 0x%0.4X), (HL): 0x%0.2X\n",
-			c.reg[H], c.reg[L], c.ReadHL(), c.readMemory(c.ReadHL())) +
-		fmt.Sprintf("SP: 0x%0.4X, PC: 0x%0.4X\n", c.SP, c.PC) +
-		fmt.Sprintf("Z: %1b, N: %1b, H: %1b, C: %1b\n",
-			c.ReadFlag(ZFlag), c.ReadFlag(NFlag), c.ReadFlag(HFlag), c.ReadFlag(CFlag))
-
-	return ret
 }
 
 // DecodeAndExecuteNext fetches next instruction from memory stored at PC
@@ -330,13 +270,13 @@ func (c *CPU) FetchCycles() byte {
 	if op == 0xCB {
 		cycles := getCbprefixedCycles(c.readMemory(c.PC + 1))
 		if cycles == 0 {
-			panic(fmt.Sprintf("prefixed Cycle - got unknown op: %X\n%s", op, c.String()))
+			panic(fmt.Sprintf("prefixed Cycle - got unknown op: %X\n", op))
 		}
 		return cycles
 	}
 	cycles := getUnprefixedCycles(op)
 	if cycles == 0 {
-		panic(fmt.Sprintf("unprefixed Cycle - got unknown op: %X\n%s", op, c.String()))
+		panic(fmt.Sprintf("unprefixed Cycle - got unknown op: %X\n", op))
 	}
 	return cycles
 }
