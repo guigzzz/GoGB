@@ -5,11 +5,10 @@ GoGB is a work-in-progress of a Gameboy emulator written in Go. The main objecti
 - write an emulator that is performant enough to run [Super Mario Land](https://en.wikipedia.org/wiki/Super_Mario_Land) at a playable frame-rate.
 - I am not planning on implementing sound for now.
 
-To use it, first `cd` into your `$GOPATH` then:
+## Build Instructions
 ```
-go get https://github.com/guigzzz/GoGB
-cd src/github.com/guigzzz/GoGB/
-go get && go build
+git clone https://github.com/guigzzz/GoGB
+cd GoGB && go build
 ./GoGB <path to rom>
 ```
 
