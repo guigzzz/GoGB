@@ -1,5 +1,7 @@
 # GoGB ![TravisCI](https://travis-ci.com/guigzzz/GoGB.svg?branch=master)
 
+![](media/mario.gif)
+
 GoGB is a work-in-progress of a Gameboy emulator written in Go. The main objectives for this project are:
 - build a medium-large sized project in Go to become familiar with the language and the design patterns associated with it.
 - write an emulator that is performant enough to run [Super Mario Land](https://en.wikipedia.org/wiki/Super_Mario_Land) at a playable frame-rate.
@@ -11,6 +13,12 @@ git clone https://github.com/guigzzz/GoGB
 cd GoGB && go build
 ./GoGB <path to rom>
 ```
+
+## Controls
+
+- `up, left, down, right = w, a, s, d`
+- `A, B = j, k`
+- `start, select = u, i`
 
 # Todo
 - [x] create unit test suite for backend
