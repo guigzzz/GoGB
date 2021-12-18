@@ -18,12 +18,10 @@ func TestRunBlarggTests(t *testing.T) {
 		panic(err)
 	}
 
-	bus := NewBus()
-	cpu := NewCPU(rom, bus)
-	ppu := NewPPU(cpu, bus)
+	cpu := NewCPU(rom, false)
+	ppu := NewPPU(cpu)
 
 	go ppu.Renderer()
-	go cpu.Runner(false)
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
 		time.Sleep(100 * time.Millisecond)

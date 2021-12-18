@@ -16,18 +16,19 @@ type PPU struct {
 	Image        *image.RGBA     // represents the current screen
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
-	bus          *Bus
+
+	cpu *CPU
 
 	irq bool
 }
 
 // NewPPU creates a new PPU object
-func NewPPU(c *CPU, bus *Bus) *PPU {
+func NewPPU(c *CPU) *PPU {
 	p := new(PPU)
 	p.ram = c.ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
 	p.ImageMutex = new(sync.RWMutex)
-	p.bus = bus
+	p.cpu = c
 	return p
 }
 
@@ -333,67 +334,63 @@ func reverse(in byte) byte {
 		(in & 0x10 >> 1) | (in & 0x20 >> 3) | (in & 0x40 >> 5) | (in & 0x80 >> 7)
 }
 
-func (p *PPU) lineByLineRender(frameTicker *time.Ticker, canRenderScreen chan struct{}) {
+func (p *PPU) RunCPU(cycles int) {
+	p.cpu.RunSync(cycles)
+}
 
-	for range frameTicker.C {
+func (p *PPU) runEmulatorForAFrame(canRenderScreen chan struct{}) {
 
-		if !p.LCDCBitSet(lcdDisplayEnable) {
-			<-p.bus.cpuDoneChannel
-			p.bus.allowanceChannel <- 154 * 114 * 4
-			continue
-		}
+	if !p.LCDCBitSet(lcdDisplayEnable) {
+		p.RunCPU(154 * 114 * 4)
+		return
+	}
 
-		for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
+	for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
 
-			<-p.bus.cpuDoneChannel
-			p.writeLY(lineNumber)
-			p.setControllerMode("OAM")
-			p.bus.allowanceChannel <- 20 * 4 // OAM search allowance
+		p.writeLY(lineNumber)
+		p.setControllerMode("OAM")
+		p.RunCPU(20 * 4) // OAM search allowance
 
-			// OAM search
+		// OAM search
 
-			<-p.bus.cpuDoneChannel
-			p.setControllerMode("PixelTransfer")
-			p.bus.allowanceChannel <- 43 * 4 // pixel transfer allowance
+		p.setControllerMode("PixelTransfer")
 
-			// pixel transfer
-			background := p.getBackgroundPixels(lineNumber)
-			window := p.getWindowPixels(lineNumber)
-			sprites, palettes, priorities := p.getSpritePixels(lineNumber)
+		p.RunCPU(43 * 4) // pixel transfer allowance
 
-			for i := range background {
-				if window[i] < 4 {
-					p.screenBuffer[int(lineNumber)*160+i] = window[i]
-				} else {
-					p.screenBuffer[int(lineNumber)*160+i] = background[i]
-				}
+		// pixel transfer
+		background := p.getBackgroundPixels(lineNumber)
+		window := p.getWindowPixels(lineNumber)
+		sprites, palettes, priorities := p.getSpritePixels(lineNumber)
 
-				if sprites[i] > 0 {
-					if priorities[i] || p.screenBuffer[int(lineNumber)*160+i] == 0 {
-						p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
-					}
-				}
+		for i := range background {
+			if window[i] < 4 {
+				p.screenBuffer[int(lineNumber)*160+i] = window[i]
+			} else {
+				p.screenBuffer[int(lineNumber)*160+i] = background[i]
 			}
 
-			<-p.bus.cpuDoneChannel
-			p.setControllerMode("HBlank")
-			p.bus.allowanceChannel <- 51 * 4 // HBlank allowance
-
-			// do nothing
+			if sprites[i] > 0 {
+				if priorities[i] || p.screenBuffer[int(lineNumber)*160+i] == 0 {
+					p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
+				}
+			}
 		}
 
-		canRenderScreen <- struct{}{}
-		<-p.bus.cpuDoneChannel
-		p.writeLY(144)
-		p.dispatchVBlankInterrupt()
-		p.setControllerMode("VBlank")
-		p.bus.allowanceChannel <- 114 * 4 // VBlank row allowance
+		p.setControllerMode("HBlank")
+		p.RunCPU(51 * 4) // HBlank allowance
 
-		for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
-			<-p.bus.cpuDoneChannel
-			p.writeLY(lineNumber)
-			p.bus.allowanceChannel <- 114 * 4 // VBlank row allowance
-		}
+		// do nothing
+	}
+
+	canRenderScreen <- struct{}{}
+	p.writeLY(144)
+	p.dispatchVBlankInterrupt()
+	p.setControllerMode("VBlank")
+	p.RunCPU(114 * 4) // VBlank row allowance
+
+	for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
+		p.writeLY(lineNumber)
+		p.RunCPU(114 * 4) // VBlank row allowance
 	}
 }
 
@@ -429,14 +426,20 @@ func (p *PPU) writeBufferToImage() {
 	}
 }
 
+func (p *PPU) renderer(canRenderScreenChan chan struct{}) {
+	for range canRenderScreenChan {
+		p.writeBufferToImage()
+	}
+}
+
 func (p *PPU) Renderer() {
 
 	canRenderScreenChan := make(chan struct{})
 	frameTicker := time.NewTicker(time.Second / 60)
 
-	go p.lineByLineRender(frameTicker, canRenderScreenChan)
+	go p.renderer(canRenderScreenChan)
 
-	for range canRenderScreenChan {
-		p.writeBufferToImage()
+	for range frameTicker.C {
+		p.runEmulatorForAFrame(canRenderScreenChan)
 	}
 }

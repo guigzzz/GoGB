@@ -30,13 +30,10 @@ func main() {
 		panic(err)
 	}
 
-	bus := backend.NewBus()
-
-	cpu := backend.NewCPU(rom, bus)
-	ppu := backend.NewPPU(cpu, bus)
+	cpu := backend.NewCPU(rom, *debug)
+	ppu := backend.NewPPU(cpu)
 	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 
 	go ppu.Renderer()
-	go cpu.Runner(*debug)
 	screenRenderer.startRendering()
 }
