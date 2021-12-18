@@ -7,6 +7,8 @@ require (
 	github.com/xlab/closer v0.0.0-20190328110542-03326addb7c2
 )
 
+require github.com/pmezard/go-difflib v1.0.0 // indirect
+
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/go-gl/glfw v0.0.0-20211213063430-748e38ca8aec
