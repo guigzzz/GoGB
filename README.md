@@ -1,4 +1,4 @@
-# GoGB
+# GoGB [![Go](https://github.com/guigzzz/GoGB/actions/workflows/go.yml/badge.svg)](https://github.com/guigzzz/GoGB/actions/workflows/go.yml)
 
 ![](media/mario.gif)
 
