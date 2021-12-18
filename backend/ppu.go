@@ -338,6 +338,26 @@ func (p *PPU) RunCPU(cycles int) {
 	p.cpu.RunSync(cycles)
 }
 
+func (p *PPU) performPixelTransfer(lineNumber byte) {
+	background := p.getBackgroundPixels(lineNumber)
+	window := p.getWindowPixels(lineNumber)
+	sprites, palettes, priorities := p.getSpritePixels(lineNumber)
+
+	for i := range background {
+		if window[i] < 4 {
+			p.screenBuffer[int(lineNumber)*160+i] = window[i]
+		} else {
+			p.screenBuffer[int(lineNumber)*160+i] = background[i]
+		}
+
+		if sprites[i] > 0 {
+			if priorities[i] || p.screenBuffer[int(lineNumber)*160+i] == 0 {
+				p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
+			}
+		}
+	}
+}
+
 func (p *PPU) runEmulatorForAFrame(canRenderScreen chan struct{}) {
 
 	if !p.LCDCBitSet(lcdDisplayEnable) {
@@ -346,51 +366,29 @@ func (p *PPU) runEmulatorForAFrame(canRenderScreen chan struct{}) {
 	}
 
 	for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
-
 		p.writeLY(lineNumber)
-		p.setControllerMode("OAM")
-		p.RunCPU(20 * 4) // OAM search allowance
 
-		// OAM search
+		p.setControllerMode(OAM)
+		p.RunCPU(20 * 4)
 
-		p.setControllerMode("PixelTransfer")
+		p.setControllerMode(PixelTransfer)
+		p.RunCPU(43 * 4)
 
-		p.RunCPU(43 * 4) // pixel transfer allowance
+		p.performPixelTransfer(lineNumber)
 
-		// pixel transfer
-		background := p.getBackgroundPixels(lineNumber)
-		window := p.getWindowPixels(lineNumber)
-		sprites, palettes, priorities := p.getSpritePixels(lineNumber)
-
-		for i := range background {
-			if window[i] < 4 {
-				p.screenBuffer[int(lineNumber)*160+i] = window[i]
-			} else {
-				p.screenBuffer[int(lineNumber)*160+i] = background[i]
-			}
-
-			if sprites[i] > 0 {
-				if priorities[i] || p.screenBuffer[int(lineNumber)*160+i] == 0 {
-					p.screenBuffer[int(lineNumber)*160+i] = mapColorToPalette(palettes[i], sprites[i])
-				}
-			}
-		}
-
-		p.setControllerMode("HBlank")
-		p.RunCPU(51 * 4) // HBlank allowance
-
-		// do nothing
+		p.setControllerMode(HBlank)
+		p.RunCPU(51 * 4)
 	}
 
 	canRenderScreen <- struct{}{}
 	p.writeLY(144)
 	p.dispatchVBlankInterrupt()
-	p.setControllerMode("VBlank")
-	p.RunCPU(114 * 4) // VBlank row allowance
+	p.setControllerMode(VBlank)
+	p.RunCPU(114 * 4)
 
 	for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
 		p.writeLY(lineNumber)
-		p.RunCPU(114 * 4) // VBlank row allowance
+		p.RunCPU(114 * 4)
 	}
 }
 

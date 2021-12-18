@@ -50,15 +50,24 @@ func (p *PPU) shouldRaiseSTATInterrupt(mode byte) bool {
 		p.interruptLYCEnabled() && p.coincidence()
 }
 
-var modeStringToNumber = map[string]byte{
-	"HBlank": 0,
-	"VBlank": 1,
-	"OAM":    2,
+type ControllerMode int
+
+const (
+	HBlank = iota
+	VBlank
+	OAM
+	PixelTransfer
+)
+
+var modeStringToNumber = map[ControllerMode]byte{
+	HBlank: 0,
+	VBlank: 1,
+	OAM:    2,
 }
 
-func (p *PPU) setControllerMode(modeString string) {
+func (p *PPU) setControllerMode(controllerMode ControllerMode) {
 
-	if mode, ok := modeStringToNumber[modeString]; ok {
+	if mode, ok := modeStringToNumber[controllerMode]; ok {
 
 		irq := p.irq
 		p.irq = p.shouldRaiseSTATInterrupt(mode)
@@ -71,8 +80,8 @@ func (p *PPU) setControllerMode(modeString string) {
 
 	} else {
 
-		if modeString != "PixelTransfer" {
-			panic(fmt.Sprintln("Got unexpected LCD controller mode: ", modeString))
+		if controllerMode != PixelTransfer {
+			panic(fmt.Sprintln("Got unexpected LCD controller mode: ", controllerMode))
 		} else {
 			p.ram[0xFF41] = 0x80 | p.ram[0xFF41]&0x7C | 3
 		}
