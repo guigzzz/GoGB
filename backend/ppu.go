@@ -443,3 +443,14 @@ func (p *PPU) Renderer() {
 		p.runEmulatorForAFrame(canRenderScreenChan)
 	}
 }
+
+// for testing, run emulation as fast as possible
+func (p *PPU) FastRenderer() {
+	canRenderScreenChan := make(chan struct{})
+
+	go p.renderer(canRenderScreenChan)
+
+	for {
+		p.runEmulatorForAFrame(canRenderScreenChan)
+	}
+}
