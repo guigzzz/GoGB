@@ -2,3 +2,4 @@
 *.gb
 **/.DS_Store
 GoGB
+emulator.prof

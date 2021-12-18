@@ -4,9 +4,11 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"path"
 	"runtime"
+	"runtime/pprof"
 
 	"github.com/guigzzz/GoGB/backend"
 )
@@ -18,7 +20,17 @@ func init() {
 func main() {
 
 	debug := flag.Bool("debug", false, "run the emulator in debug mode")
+	profile := flag.Bool("profile", false, "profile the emulator")
 	flag.Parse()
+
+	if *profile {
+		f, err := os.Create("emulator.prof")
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	if len(flag.Args()) != 1 {
 		fmt.Println(fmt.Sprintf("Usage: ./%s <path to rom>", path.Base(os.Args[0])))
