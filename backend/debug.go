@@ -40,7 +40,7 @@ type DebugHarness struct {
 }
 
 // NewDebugHarness creates a new DebugHarness object
-func NewDebugHarness() DebugHarness {
+func NewDebugHarness() *DebugHarness {
 	o := DebugHarness{}
 
 	j := readOpcodesJSON("backend/opcodes.json")
@@ -65,7 +65,7 @@ func NewDebugHarness() DebugHarness {
 
 	o.ExercisedOps = make(map[string]uint)
 
-	return o
+	return &o
 }
 
 func (d *DebugHarness) PrintDebug(c *CPU) {

@@ -27,7 +27,7 @@ type CPU struct {
 	cycleCounter uint64 // to count cycles
 	timerPeriod  uint64 // 1024, 16, 64, 256
 
-	debug bool
+	debugger *DebugHarness
 }
 
 // NewCPU creates a new cpu struct
@@ -61,7 +61,9 @@ func NewCPU(rom []byte, debug bool) *CPU {
 	c.haltMode = 0
 	c.timerPeriod = 0
 
-	c.debug = debug
+	if debug {
+		c.debugger = NewDebugHarness()
+	}
 
 	return c
 }
@@ -78,16 +80,10 @@ func NewTestCPU() *CPU {
 }
 
 func (c *CPU) RunSync(allowance int) {
-
-	var debugger DebugHarness
-	if c.debug {
-		debugger = NewDebugHarness()
-	}
-
 	var increment uint64
 	for cycle := 0; cycle+int(increment) < allowance; cycle += int(increment) {
-		if c.debug && c.haltMode == 0 {
-			debugger.PrintDebug(c)
+		if c.debugger != nil && c.haltMode == 0 {
+			c.debugger.PrintDebug(c)
 		}
 
 		c.CheckAndHandleInterrupts()
