@@ -16,10 +16,9 @@ type PPU struct {
 	Image        *image.RGBA     // represents the current screen
 	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
-
-	cpu *CPU
-
-	irq bool
+	cpu          *CPU
+	irq          bool
+	sprites      Sprites
 }
 
 // NewPPU creates a new PPU object
@@ -29,6 +28,9 @@ func NewPPU(c *CPU) *PPU {
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
 	p.ImageMutex = new(sync.RWMutex)
 	p.cpu = c
+
+	p.sprites = make([]Sprite, 0, 10)
+
 	return p
 }
 
@@ -232,6 +234,19 @@ type Sprite struct {
 	priority  bool
 }
 
+type Sprites []Sprite
+
+func (s Sprites) Less(i, j int) bool {
+	if s[i].xPos < s[j].xPos {
+		return true
+	} else if s[i].xPos == s[j].xPos && s[i].position < s[j].position {
+		return true
+	}
+	return false
+}
+func (s Sprites) Len() int      { return len(s) }
+func (s Sprites) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+
 func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool) {
 
 	if !p.LCDCBitSet(objDisplayEnable) {
@@ -241,7 +256,10 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 	// Implements OAM searching and sprite rendering
 	attributes := p.getSpriteAttributes()
 	spriteHeight := p.getSpriteHeight()
-	sprites := make([]Sprite, 0, 10)
+
+	// reset sprites array but keep underlying memory to reduce allocations
+	p.sprites = p.sprites[:0]
+	sprites := p.sprites
 
 	for i := 0; i < 40 && len(sprites) < 10; i++ {
 
@@ -265,14 +283,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
 	}
 
-	sort.Slice(sprites, func(i, j int) bool {
-		if sprites[i].xPos < sprites[j].xPos {
-			return true
-		} else if sprites[i].xPos == sprites[j].xPos && sprites[i].position < sprites[j].position {
-			return true
-		}
-		return false
-	})
+	sort.Sort(sprites)
 
 	pixels := [160]byte{}
 	palettes := [160]byte{}

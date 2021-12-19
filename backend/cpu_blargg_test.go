@@ -4,15 +4,15 @@ import (
 	"crypto/md5"
 	"io/ioutil"
 	"testing"
-	"time"
 )
 
 const (
-	romPath = "../rom/cpu_instrs.gb"
+	blargg = "../rom/cpu_instrs.gb"
+	wario  = "../rom/wario_walking_demo.gb"
 )
 
-func Init() (*PPU, *CPU) {
-	rom, err := ioutil.ReadFile(romPath)
+func Init(path string) (*PPU, *CPU) {
+	rom, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
@@ -24,11 +24,16 @@ func Init() (*PPU, *CPU) {
 
 func TestRunBlarggTests(t *testing.T) {
 
-	ppu, cpu := Init()
-	go ppu.FastRenderer()
+	ppu, cpu := Init(blargg)
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
-		time.Sleep(100 * time.Millisecond)
+		ppu.RunEmulatorForAFrame(func() {})
+	}
+	ppu.writeBufferToImage()
+
+	// emulator state should be always exactly the same after the test passes
+	if cpu.PC != 0x06F1 || cpu.cycleCounter != 234917420 {
+		t.Errorf("Blargg test failed.")
 	}
 
 	hasher := md5.New()
@@ -51,7 +56,7 @@ func TestRunBlarggTests(t *testing.T) {
 }
 
 func BenchmarkRunEmulatorForAFrame(b *testing.B) {
-	ppu, _ := Init()
+	ppu, _ := Init(wario)
 
 	for n := 0; n < b.N; n++ {
 		ppu.RunEmulatorForAFrame(func() {})
