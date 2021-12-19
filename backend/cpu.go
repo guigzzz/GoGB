@@ -28,11 +28,12 @@ type CPU struct {
 	timerPeriod  uint64 // 1024, 16, 64, 256
 
 	debugger *DebugHarness
+	logger   Logger
 }
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU(rom []byte, debug bool) *CPU {
+func NewCPU(rom []byte, debug bool, logger Logger) *CPU {
 	c := new(CPU)
 
 	c.ram = make([]byte, 1<<16)
@@ -63,6 +64,12 @@ func NewCPU(rom []byte, debug bool) *CPU {
 
 	if debug {
 		c.debugger = NewDebugHarness()
+	}
+
+	if logger == nil {
+		c.logger = NewPrintLogger()
+	} else {
+		c.logger = logger
 	}
 
 	return c
@@ -107,21 +114,23 @@ func (c *CPU) DecodeAndExecuteNext() {
 	op := c.readMemory(c.PC)
 	oprow := (op & 0xF0) >> 4
 
-	b := []byte{c.readMemory(c.PC), c.readMemory(c.PC + 1), c.readMemory(c.PC + 2)}
-
 	switch {
 	case oprow <= 3:
+		second := c.readMemory(c.PC + 1)
+		third := c.readMemory(c.PC + 2)
 		// various instructions
-		c.DecodeVariousUpper(b)
+		c.DecodeVariousUpper(op, second, third)
 	case oprow <= 7:
 		// various memory instructions
-		c.DecodeMem(b)
+		c.DecodeMem(op)
 	case oprow <= 11:
 		// various ALU inctructions
-		c.DecodeArith(b)
+		c.DecodeArith(op)
 	default:
+		second := c.readMemory(c.PC + 1)
+		third := c.readMemory(c.PC + 2)
 		// various instructions
-		c.DecodeVariousLower(b)
+		c.DecodeVariousLower(op, second, third)
 	}
 
 	c.PC += GetPCIncrement(op)

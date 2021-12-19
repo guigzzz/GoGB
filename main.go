@@ -42,7 +42,7 @@ func main() {
 		panic(err)
 	}
 
-	cpu := backend.NewCPU(rom, *debug)
+	cpu := backend.NewCPU(rom, *debug, nil)
 	ppu := backend.NewPPU(cpu)
 	screenRenderer := NewScreenRenderer(ppu, cpu, 175, 155)
 

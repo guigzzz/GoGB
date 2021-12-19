@@ -1,9 +1,5 @@
 package backend
 
-import (
-	"fmt"
-)
-
 func (c *CPU) readMemory(address uint16) byte {
 
 	if c.mbc.DelegateReadToMBC(address) {
@@ -26,7 +22,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 		// ignore
 	} else {
 		if address == 0xFF02 && value == 0x81 {
-			fmt.Print(string(c.ram[0xFF01]))
+			c.logger.Log(string(c.ram[0xFF01]))
 		} else if address == 0xFF46 {
 			c.DMA(value)
 			c.ram[0xFF46] = value

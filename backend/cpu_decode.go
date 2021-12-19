@@ -11,8 +11,8 @@ package backend
 //////////////////
 
 // DecodeVariousUpper decodes various instructions on first 4 rows
-func (c *CPU) DecodeVariousUpper(b []byte) {
-	op := b[0]
+func (c *CPU) DecodeVariousUpper(first, second, third byte) {
+	op := first
 	oprow := int((op & 0xF0) >> 4)
 	opcol := int(op & 0xF)
 
@@ -24,12 +24,12 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 		case 1: // STOP
 			// fmt.Println("Warning: Got STOP instruction, this is probably a bug")
 		case 2: // JR NZ,r8
-			c.JumpRelativeNZ(b[1])
+			c.JumpRelativeNZ(second)
 		case 3: // JR NC,r8
-			c.JumpRelativeNC(b[1])
+			c.JumpRelativeNC(second)
 		}
 	case 1:
-		v := PackBytes(b[2], b[1])
+		v := PackBytes(third, second)
 		switch oprow {
 		case 0: // LD BC,d16
 			c.Writedouble(B, C, v)
@@ -89,13 +89,13 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 6:
 		switch oprow {
 		case 0: // LD B, d8
-			c.Load(B, b[1])
+			c.Load(B, second)
 		case 1: // LD D, d8
-			c.Load(D, b[1])
+			c.Load(D, second)
 		case 2: // LD H, d8
-			c.Load(H, b[1])
+			c.Load(H, second)
 		case 3: // LD (HL), d8
-			c.StoreN(b[1])
+			c.StoreN(second)
 		}
 	case 7:
 		switch oprow {
@@ -115,13 +115,13 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 8:
 		switch oprow {
 		case 0: // LD (a16),SP
-			c.StoreSPNN(PackBytes(b[2], b[1]))
+			c.StoreSPNN(PackBytes(third, second))
 		case 1: // JR r8
-			c.JumpRelative(b[1])
+			c.JumpRelative(second)
 		case 2: // JR Z,r8
-			c.JumpRelativeZ(b[1])
+			c.JumpRelativeZ(second)
 		case 3: // JR C,r8
-			c.JumpRelativeC(b[1])
+			c.JumpRelativeC(second)
 		}
 	case 9:
 		switch oprow {
@@ -183,13 +183,13 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 	case 14:
 		switch oprow {
 		case 0: // LD C, d8
-			c.Load(C, b[1])
+			c.Load(C, second)
 		case 1: // LD E, d8
-			c.Load(E, b[1])
+			c.Load(E, second)
 		case 2: // LD L, d8
-			c.Load(L, b[1])
+			c.Load(L, second)
 		case 3: // LD A, d8
-			c.Load(A, b[1])
+			c.Load(A, second)
 		}
 	case 15:
 		switch oprow {
@@ -221,8 +221,7 @@ func (c *CPU) DecodeVariousUpper(b []byte) {
 ////////////
 
 // DecodeMem decodes the various LD instructioons
-func (c *CPU) DecodeMem(b []byte) {
-	op := b[0]
+func (c *CPU) DecodeMem(op byte) {
 	oprow := int((op&0xF0)>>4) - 4
 	opcol := int(op & 0xF)
 
@@ -294,8 +293,7 @@ func (c *CPU) decodeLDArg2(oprow int, src Register) {
 ////////////////
 
 // DecodeArith decodes various arithmetic instructions
-func (c *CPU) DecodeArith(b []byte) {
-	op := b[0]
+func (c *CPU) DecodeArith(op byte) {
 	oprow := int((op&0xF0)>>4) - 8
 	opcol := int(op & 0xF)
 
@@ -368,8 +366,8 @@ func (c *CPU) decodeArithArg2(oprow int, src Register) {
 //////////////////
 
 // DecodeVariousLower decodes various instructions on last 4 rows
-func (c *CPU) DecodeVariousLower(b []byte) {
-	op := b[0]
+func (c *CPU) DecodeVariousLower(first, second, third byte) {
+	op := first
 	oprow := int((op&0xF0)>>4) - 12
 	opcol := int(op & 0xF)
 
@@ -381,9 +379,9 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1: // RET NC
 			c.RetNC()
 		case 2: // LDH (a8),A
-			c.StoreHigh(b[1])
+			c.StoreHigh(second)
 		case 3: // LDH A,(a8)
-			c.LoadHigh(b[1])
+			c.LoadHigh(second)
 		}
 	case 1:
 		switch oprow {
@@ -400,10 +398,10 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 2:
 		switch oprow {
 		case 0: // JP NZ,a16
-			v := PackBytes(b[2], b[1])
+			v := PackBytes(third, second)
 			c.JumpNZ(v)
 		case 1: // JP NC,a16
-			v := PackBytes(b[2], b[1])
+			v := PackBytes(third, second)
 			c.JumpNC(v)
 		case 2: // LD (C),A
 			c.StoreHigh(c.reg[C])
@@ -413,7 +411,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 3:
 		switch oprow {
 		case 0: // JP a16
-			v := PackBytes(b[2], b[1])
+			v := PackBytes(third, second)
 			c.Jump(v)
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
@@ -421,7 +419,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 			c.IME = false
 		}
 	case 4:
-		v := PackBytes(b[2], b[1])
+		v := PackBytes(third, second)
 		switch oprow {
 		case 0: // CALL NZ,a16
 			c.CallNZ(v)
@@ -444,13 +442,13 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 6:
 		switch oprow {
 		case 0: // ADD A,d8
-			c.Addn(b[1], false)
+			c.Addn(second, false)
 		case 1: // SUB d8
-			c.Subn(b[1], false)
+			c.Subn(second, false)
 		case 2: // AND d8
-			c.Andn(b[1])
+			c.Andn(second)
 		case 3: // OR d8
-			c.Orn(b[1])
+			c.Orn(second)
 		}
 	case 7:
 		switch oprow {
@@ -470,9 +468,9 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 		case 1: // RET C
 			c.RetC()
 		case 2: // ADD SP,r8
-			c.AddSP8(b[1])
+			c.AddSP8(second)
 		case 3: // LD HL,SP+r8
-			c.LoadHLSPN(b[1])
+			c.LoadHLSPN(second)
 		}
 	case 9:
 		switch oprow {
@@ -487,7 +485,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 			c.SP = c.ReadHL()
 		}
 	case 10:
-		v := PackBytes(b[2], b[1])
+		v := PackBytes(third, second)
 		switch oprow {
 		case 0: // JP Z,a16
 			c.JumpZ(v)
@@ -501,14 +499,14 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 11:
 		switch oprow {
 		case 0: // PREFIX CB
-			c.DecodePrefixCB(b[1])
+			c.DecodePrefixCB(second)
 		case 1, 2: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
 		case 3: // EI
 			c.IME = true
 		}
 	case 12:
-		v := PackBytes(b[2], b[1])
+		v := PackBytes(third, second)
 		switch oprow {
 		case 0: // CALL Z,a16
 			c.CallZ(v)
@@ -520,7 +518,7 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 13:
 		switch oprow {
 		case 0: // CALL a16
-			v := PackBytes(b[2], b[1])
+			v := PackBytes(third, second)
 			c.Call(v)
 		case 1, 2, 3: // NONE
 			panic("ERROR - byte decoded to unused instruction -> there is a bug somewhere")
@@ -528,13 +526,13 @@ func (c *CPU) DecodeVariousLower(b []byte) {
 	case 14:
 		switch oprow {
 		case 0: // ADC A,d8
-			c.Addn(b[1], true)
+			c.Addn(second, true)
 		case 1: // SBC A,d8
-			c.Subn(b[1], true)
+			c.Subn(second, true)
 		case 2: // XOR d8
-			c.Xorn(b[1])
+			c.Xorn(second)
 		case 3: // CP d8
-			c.Cpn(b[1])
+			c.Cpn(second)
 		}
 	case 15:
 		switch oprow {

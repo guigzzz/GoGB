@@ -358,7 +358,7 @@ func (p *PPU) performPixelTransfer(lineNumber byte) {
 	}
 }
 
-func (p *PPU) runEmulatorForAFrame(canRenderScreen chan struct{}) {
+func (p *PPU) RunEmulatorForAFrame(canRenderScreenCallback func()) {
 
 	if !p.LCDCBitSet(lcdDisplayEnable) {
 		p.RunCPU(154 * 114 * 4)
@@ -380,7 +380,7 @@ func (p *PPU) runEmulatorForAFrame(canRenderScreen chan struct{}) {
 		p.RunCPU(51 * 4)
 	}
 
-	canRenderScreen <- struct{}{}
+	canRenderScreenCallback()
 	p.writeLY(144)
 	p.dispatchVBlankInterrupt()
 	p.setControllerMode(VBlank)
@@ -438,7 +438,7 @@ func (p *PPU) Renderer() {
 	go p.renderer(canRenderScreenChan)
 
 	for range frameTicker.C {
-		p.runEmulatorForAFrame(canRenderScreenChan)
+		p.RunEmulatorForAFrame(func() { canRenderScreenChan <- struct{}{} })
 	}
 }
 
@@ -449,6 +449,6 @@ func (p *PPU) FastRenderer() {
 	go p.renderer(canRenderScreenChan)
 
 	for {
-		p.runEmulatorForAFrame(canRenderScreenChan)
+		p.RunEmulatorForAFrame(func() { canRenderScreenChan <- struct{}{} })
 	}
 }

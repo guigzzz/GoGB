@@ -11,16 +11,20 @@ const (
 	romPath = "../rom/cpu_instrs.gb"
 )
 
-func TestRunBlarggTests(t *testing.T) {
-
+func Init() (*PPU, *CPU) {
 	rom, err := ioutil.ReadFile(romPath)
 	if err != nil {
 		panic(err)
 	}
 
-	cpu := NewCPU(rom, false)
+	cpu := NewCPU(rom, false, NewNullLogger())
 	ppu := NewPPU(cpu)
+	return ppu, cpu
+}
 
+func TestRunBlarggTests(t *testing.T) {
+
+	ppu, cpu := Init()
 	go ppu.FastRenderer()
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
@@ -43,5 +47,13 @@ func TestRunBlarggTests(t *testing.T) {
 			t.Errorf("Blargg test failed.")
 			return
 		}
+	}
+}
+
+func BenchmarkRunEmulatorForAFrame(b *testing.B) {
+	ppu, _ := Init()
+
+	for n := 0; n < b.N; n++ {
+		ppu.RunEmulatorForAFrame(func() {})
 	}
 }
