@@ -124,11 +124,9 @@ func (p *PPU) getBackgroundPixels(lineNumber byte) [160]byte {
 		// 16 bytes per tile, 8 lines of 8 pixels per tiles
 		// meaning 2 bytes per line
 		lineDataIndex := uint(tileMapIndex)*16 + 2*uint(rowInTile)
-		lineData := tileData[lineDataIndex : lineDataIndex+2]
-
 		pixelInLine := (scrollX + i) % 8
-		msb := (lineData[1] >> (7 - pixelInLine)) & 1
-		lsb := (lineData[0] >> (7 - pixelInLine)) & 1
+		msb := (tileData[lineDataIndex+1] >> (7 - pixelInLine)) & 1
+		lsb := (tileData[lineDataIndex] >> (7 - pixelInLine)) & 1
 
 		colorCode := (msb << 1) | lsb
 
