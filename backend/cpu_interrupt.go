@@ -48,16 +48,35 @@ func (c *CPU) CheckAndHandleInterrupts() {
 	}
 }
 
+func tacToPeriod(tac byte) uint64 {
+	switch tac & 0x3 {
+	case 0:
+		return 1024
+	case 1:
+		return 16
+	case 2:
+		return 64
+	case 3:
+		return 256
+	default:
+		panic("Unreachable")
+	}
+}
+
 func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 
 	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
 
-	modulo := c.cycleCounter & (c.timerPeriod - 1)
+	tac := c.ram[0xFF07]
 
-	if c.timerPeriod == 0 {
+	if tac&0x4 == 0 {
 		c.ram[0xFF05] = 0
 		return
-	} else if cycleIncrement < c.timerPeriod-modulo {
+	}
+
+	timerPeriod := tacToPeriod(tac)
+	modulo := c.cycleCounter & (timerPeriod - 1)
+	if cycleIncrement < timerPeriod-modulo {
 		return
 	}
 
@@ -70,17 +89,6 @@ func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 		c.ram[0xFF0F] |= 0x4
 	} else {
 		c.ram[0xFF05]++
-	}
-	if 2*c.timerPeriod-modulo < cycleIncrement {
-		if c.ram[0xFF05] == 0xFF {
-			// write TMA into TIMA
-			c.ram[0xFF05] = c.ram[0xFF06]
-
-			// write to IF to signal interrupt
-			c.ram[0xFF0F] |= 0x4
-		} else {
-			c.ram[0xFF05]++
-		}
 	}
 }
 

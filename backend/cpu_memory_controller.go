@@ -28,13 +28,6 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			c.ram[0xFF46] = value
 		} else if address == 0xFF00 {
 			c.ram[0xFF00] = c.readKeyPressed(value)
-		} else if address == 0xFF07 {
-			// timer
-			newValue := value & 0x7
-			oldValue := c.ram[address]
-			c.handleTimer(newValue, oldValue)
-			c.ram[address] = newValue | 0xF8
-
 		} else if address == 0xFF04 {
 			// when DIV is written
 			// it is reset to 0
@@ -86,28 +79,4 @@ func (c *CPU) readKeyPressed(code byte) byte {
 		}
 	}
 	return regValue
-}
-
-func (c *CPU) handleTimer(newValue, oldValue byte) {
-	// Bit 2 - Timer Enable (0=Disable, 1=Enable)
-	// Bits 1-0 - Main Frequency Divider
-	// 00: 4096 Hz (Increase every 1024 clocks)
-	// 01: 262144 Hz ( “ “ 16 clocks)
-	// 10: 65536 Hz ( “ “ 64 clocks)
-	// 11: 16386 Hz ( “ “ 256 clocks)
-
-	if newValue&0x4 == 0 {
-		return
-	}
-
-	switch newValue & 0x3 {
-	case 0:
-		c.timerPeriod = 1024
-	case 1:
-		c.timerPeriod = 16
-	case 2:
-		c.timerPeriod = 64
-	case 3:
-		c.timerPeriod = 256
-	}
 }
