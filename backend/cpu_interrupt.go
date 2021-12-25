@@ -70,7 +70,6 @@ func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 	tac := c.ram[0xFF07]
 
 	if tac&0x4 == 0 {
-		c.ram[0xFF05] = 0
 		return
 	}
 
