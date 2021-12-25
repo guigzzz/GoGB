@@ -41,18 +41,14 @@ const (
 	height = 144
 )
 
-// Layout takes the outside size (e.g., the window size) and returns the (logical) screen size.
-// If you don't have to adjust the screen size with the outside size, just return a fixed size.
 func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeight int) {
 	return width, height
 }
 
 func RunGame(p *backend.PPU, c *backend.CPU) {
 	game := &Game{p: p, c: c}
-	// Specify the window size as you like. Here, a doubled size is specified.
 	ebiten.SetWindowSize(width*2, height*2)
 	ebiten.SetWindowTitle("GoGB")
-	// Call ebiten.RunGame to start your game loop.
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

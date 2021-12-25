@@ -7,15 +7,10 @@ import (
 	"log"
 	"os"
 	"path"
-	"runtime"
 	"runtime/pprof"
 
 	"github.com/guigzzz/GoGB/backend"
 )
-
-func init() {
-	runtime.LockOSThread()
-}
 
 func main() {
 
