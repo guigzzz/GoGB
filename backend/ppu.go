@@ -5,8 +5,6 @@ import (
 	"image"
 	"image/color"
 	"sort"
-	"sync"
-	"time"
 )
 
 // PPU represents the pixel processing unit
@@ -14,7 +12,6 @@ import (
 type PPU struct {
 	ram          []byte          // reference to memory shared with CPU
 	Image        *image.RGBA     // represents the current screen
-	ImageMutex   *sync.RWMutex   // to ensure safety when writing to screen buffer
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
 	cpu          *CPU
 	irq          bool
@@ -26,7 +23,6 @@ func NewPPU(c *CPU) *PPU {
 	p := new(PPU)
 	p.ram = c.ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
-	p.ImageMutex = new(sync.RWMutex)
 	p.cpu = c
 
 	p.sprites = make([]Sprite, 0, 10)
@@ -367,7 +363,7 @@ func (p *PPU) performPixelTransfer(lineNumber byte) {
 	}
 }
 
-func (p *PPU) RunEmulatorForAFrame(canRenderScreenCallback func()) {
+func (p *PPU) RunEmulatorForAFrame() {
 
 	if !p.LCDCBitSet(lcdDisplayEnable) {
 		p.RunCPU(154 * 114 * 4)
@@ -389,7 +385,8 @@ func (p *PPU) RunEmulatorForAFrame(canRenderScreenCallback func()) {
 		p.RunCPU(51 * 4)
 	}
 
-	canRenderScreenCallback()
+	p.writeBufferToImage()
+
 	p.writeLY(144)
 	p.dispatchVBlankInterrupt()
 	p.setControllerMode(VBlank)
@@ -422,42 +419,9 @@ func getPixelColor(value byte) color.RGBA {
 }
 
 func (p *PPU) writeBufferToImage() {
-
-	p.ImageMutex.Lock()
-	defer p.ImageMutex.Unlock()
-
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
 			p.Image.SetRGBA(j, i, getPixelColor(p.screenBuffer[i*160+j]))
 		}
-	}
-}
-
-func (p *PPU) renderer(canRenderScreenChan chan struct{}) {
-	for range canRenderScreenChan {
-		p.writeBufferToImage()
-	}
-}
-
-func (p *PPU) Renderer() {
-
-	canRenderScreenChan := make(chan struct{})
-	frameTicker := time.NewTicker(time.Second / 60)
-
-	go p.renderer(canRenderScreenChan)
-
-	for range frameTicker.C {
-		p.RunEmulatorForAFrame(func() { canRenderScreenChan <- struct{}{} })
-	}
-}
-
-// for testing, run emulation as fast as possible
-func (p *PPU) FastRenderer() {
-	canRenderScreenChan := make(chan struct{})
-
-	go p.renderer(canRenderScreenChan)
-
-	for {
-		p.RunEmulatorForAFrame(func() { canRenderScreenChan <- struct{}{} })
 	}
 }

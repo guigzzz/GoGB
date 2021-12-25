@@ -2,7 +2,6 @@ package backend
 
 import (
 	"fmt"
-	"sync"
 )
 
 // CPU represents the current cpu state
@@ -15,8 +14,7 @@ type CPU struct {
 
 	mbc MBC // memory bank controller
 
-	KeyPressedMap     map[string]bool
-	KeyPressedMapLock *sync.RWMutex
+	KeyPressedMap map[string]bool
 
 	haltMode byte
 	// 0 -> not halted,
@@ -57,7 +55,6 @@ func NewCPU(rom []byte, debug bool, logger Logger) *CPU {
 		"up": false, "down": false, "left": false, "right": false,
 		"A": false, "B": false, "start": false, "select": false,
 	}
-	c.KeyPressedMapLock = new(sync.RWMutex)
 
 	c.haltMode = 0
 	c.timerPeriod = 0

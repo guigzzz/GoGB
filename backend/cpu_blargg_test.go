@@ -27,9 +27,8 @@ func TestRunBlarggTests(t *testing.T) {
 	ppu, cpu := Init(blargg)
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
-		ppu.RunEmulatorForAFrame(func() {})
+		ppu.RunEmulatorForAFrame()
 	}
-	ppu.writeBufferToImage()
 
 	// emulator state should be always exactly the same after the test passes
 	if cpu.PC != 0x06F1 || cpu.cycleCounter != 234917420 {
@@ -59,6 +58,6 @@ func BenchmarkRunEmulatorForAFrame(b *testing.B) {
 	ppu, _ := Init(wario)
 
 	for n := 0; n < b.N; n++ {
-		ppu.RunEmulatorForAFrame(func() {})
+		ppu.RunEmulatorForAFrame()
 	}
 }

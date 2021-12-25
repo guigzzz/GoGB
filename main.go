@@ -39,8 +39,5 @@ func main() {
 
 	cpu := backend.NewCPU(rom, *debug, nil)
 	ppu := backend.NewPPU(cpu)
-
-	go ppu.Renderer()
-
 	RunGame(ppu, cpu)
 }

@@ -15,9 +15,6 @@ type Game struct {
 
 func (g *Game) Update(screen *ebiten.Image) error {
 
-	g.c.KeyPressedMapLock.Lock()
-	defer g.c.KeyPressedMapLock.Unlock()
-
 	for key, value := range keyMap {
 		if inpututil.IsKeyJustPressed(key) {
 			g.c.KeyPressedMap[value] = true
@@ -27,6 +24,8 @@ func (g *Game) Update(screen *ebiten.Image) error {
 			g.c.KeyPressedMap[value] = false
 		}
 	}
+
+	g.p.RunEmulatorForAFrame()
 
 	return nil
 }
@@ -49,6 +48,7 @@ func RunGame(p *backend.PPU, c *backend.CPU) {
 	game := &Game{p: p, c: c}
 	ebiten.SetWindowSize(width*2, height*2)
 	ebiten.SetWindowTitle("GoGB")
+	ebiten.SetMaxTPS(60)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}
