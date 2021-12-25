@@ -11,7 +11,6 @@ GoGB is a work-in-progress of a Gameboy emulator written in Go. The main objecti
 ## Build Instructions
 
 ```
-sudo apt install xorg-dev libgl1-mesa-dev
 git clone https://github.com/guigzzz/GoGB
 cd GoGB && go build
 ./GoGB <path to rom>
