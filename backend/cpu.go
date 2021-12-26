@@ -23,7 +23,6 @@ type CPU struct {
 	// 3 -> IME == false; IE & IF > 0; HALT BUG
 
 	cycleCounter uint64 // to count cycles
-	timerPeriod  uint64 // 1024, 16, 64, 256
 
 	debugger *DebugHarness
 	logger   Logger
@@ -57,7 +56,6 @@ func NewCPU(rom []byte, debug bool, logger Logger) *CPU {
 	}
 
 	c.haltMode = 0
-	c.timerPeriod = 0
 
 	if debug {
 		c.debugger = NewDebugHarness()
