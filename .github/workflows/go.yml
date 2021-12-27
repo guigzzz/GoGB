@@ -22,7 +22,7 @@ jobs:
       run: sudo apt update
 
     - name: Install dependencies
-      run: sudo apt install libgl1-mesa-dev xorg-dev
+      run: sudo apt install libgl1-mesa-dev xorg-dev libasound2-dev
 
     - name: Build
       run: go build -v ./...
