@@ -37,7 +37,7 @@ func main() {
 		panic(err)
 	}
 
-	cpu := backend.NewCPU(rom, *debug, nil)
+	cpu := backend.NewCPU(rom, *debug, nil, nil)
 	ppu := backend.NewPPU(cpu)
 	RunGame(ppu, cpu)
 }

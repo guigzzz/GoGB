@@ -1,5 +1,14 @@
 package backend
 
+var audioRegOrLookup = [32]byte{
+	0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR10-NR14
+	0xFF, 0x3F, 0x00, 0xFF, 0xBF, // NR20-NR24
+	0x7F, 0xFF, 0x9F, 0xFF, 0xBF, // NR30-NR34
+	0xFF, 0xFF, 0x00, 0x00, 0xBF, // NR40-NR44
+	0x00, 0x00, 0x70, // NR50-NR52
+	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // unused regs
+}
+
 func (c *CPU) readMemory(address uint16) byte {
 
 	if c.mbc.DelegateReadToMBC(address) {
@@ -8,6 +17,10 @@ func (c *CPU) readMemory(address uint16) byte {
 
 	} else if 0xFEA0 <= address && address < 0xFF00 {
 		return 00
+	} else if 0xFF10 <= address && address <= 0xFF2F {
+		// audio regs
+		or := audioRegOrLookup[address-0xFF10]
+		return c.ram[address] | or
 	}
 	return c.ram[address]
 }
@@ -20,6 +33,26 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 
 	} else if 0xFEA0 <= address && address < 0xFF00 {
 		// ignore
+	} else if 0xFF10 <= address && address <= 0xFF2F {
+		// audio
+		if address == 0xFF26 {
+			// NR52 only top bits are writeable
+			c.ram[address] = value & 0xF0
+
+			// check if APU disabled. If yes, then clear all regs
+			if value&0x80 == 0 {
+				for i := 0xFF10; i <= 0xFF2F; i++ {
+					c.ram[i] = 0
+				}
+			}
+
+		} else {
+			// ignore all writes if APU disabled
+			isOn := c.ram[0xFF26]&0x80 > 0
+			if isOn {
+				c.ram[address] = value
+			}
+		}
 	} else {
 		if address == 0xFF02 && value == 0x81 {
 			c.logger.Log(string(c.ram[0xFF01]))

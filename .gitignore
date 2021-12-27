@@ -4,3 +4,5 @@
 GoGB
 emulator.prof
 *profile.out
+*.txt
+rom/dmg_sound

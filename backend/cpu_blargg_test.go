@@ -11,13 +11,17 @@ const (
 	wario  = "../rom/wario_walking_demo.gb"
 )
 
+func apuFactory(c *CPU) APU {
+	return &NullAPU{}
+}
+
 func Init(path string) (*PPU, *CPU) {
 	rom, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	cpu := NewCPU(rom, false, NewNullLogger())
+	cpu := NewCPU(rom, false, NewNullLogger(), apuFactory)
 	ppu := NewPPU(cpu)
 	return ppu, cpu
 }

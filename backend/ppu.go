@@ -340,7 +340,7 @@ func reverse(in byte) byte {
 }
 
 func (p *PPU) RunCPU(cycles int) {
-	p.cpu.RunSync(cycles)
+	p.cpu.RunSync(cycles * 4)
 }
 
 func (p *PPU) performPixelTransfer(lineNumber byte) {
@@ -366,7 +366,7 @@ func (p *PPU) performPixelTransfer(lineNumber byte) {
 func (p *PPU) RunEmulatorForAFrame() {
 
 	if !p.LCDCBitSet(lcdDisplayEnable) {
-		p.RunCPU(154 * 114 * 4)
+		p.RunCPU(154 * 114)
 		return
 	}
 
@@ -374,15 +374,15 @@ func (p *PPU) RunEmulatorForAFrame() {
 		p.writeLY(lineNumber)
 
 		p.setControllerMode(OAM)
-		p.RunCPU(20 * 4)
+		p.RunCPU(20)
 
 		p.setControllerMode(PixelTransfer)
-		p.RunCPU(43 * 4)
+		p.RunCPU(43)
 
 		p.performPixelTransfer(lineNumber)
 
 		p.setControllerMode(HBlank)
-		p.RunCPU(51 * 4)
+		p.RunCPU(51)
 	}
 
 	p.writeBufferToImage()
@@ -390,11 +390,11 @@ func (p *PPU) RunEmulatorForAFrame() {
 	p.writeLY(144)
 	p.dispatchVBlankInterrupt()
 	p.setControllerMode(VBlank)
-	p.RunCPU(114 * 4)
+	p.RunCPU(114)
 
 	for lineNumber := byte(145); lineNumber < 154; lineNumber++ {
 		p.writeLY(lineNumber)
-		p.RunCPU(114 * 4)
+		p.RunCPU(114)
 	}
 }
 

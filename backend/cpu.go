@@ -26,11 +26,15 @@ type CPU struct {
 
 	debugger *DebugHarness
 	logger   Logger
+
+	apu APU
 }
+
+type ApuFactory func(c *CPU) APU
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU(rom []byte, debug bool, logger Logger) *CPU {
+func NewCPU(rom []byte, debug bool, logger Logger, apuFactory ApuFactory) *CPU {
 	c := new(CPU)
 
 	c.ram = make([]byte, 1<<16)
@@ -67,7 +71,17 @@ func NewCPU(rom []byte, debug bool, logger Logger) *CPU {
 		c.logger = logger
 	}
 
+	if apuFactory == nil {
+		c.apu = NewAPU(c)
+	} else {
+		c.apu = apuFactory(c)
+	}
+
 	return c
+}
+
+func (c *CPU) GetAPU() APU {
+	return c.apu
 }
 
 // NewTestCPU creates a barebone CPU specifically for tests
@@ -100,6 +114,9 @@ func (c *CPU) RunSync(allowance int) {
 			increment = uint64(c.FetchCycles())
 		}
 		c.checkForTimerIncrementAndInterrupt(increment)
+		for i := 0; i < int(increment); i++ {
+			c.apu.StepAPU(1)
+		}
 		c.cycleCounter += increment
 	}
 }
