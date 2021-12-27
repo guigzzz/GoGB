@@ -4,8 +4,8 @@ import (
 	"log"
 
 	"github.com/guigzzz/GoGB/backend"
-	"github.com/hajimehoshi/ebiten"
-	"github.com/hajimehoshi/ebiten/inpututil"
+	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
 type Game struct {
@@ -13,7 +13,7 @@ type Game struct {
 	c *backend.CPU
 }
 
-func (g *Game) Update(screen *ebiten.Image) error {
+func (g *Game) Update() error {
 
 	for key, value := range keyMap {
 		if inpututil.IsKeyJustPressed(key) {
@@ -31,7 +31,7 @@ func (g *Game) Update(screen *ebiten.Image) error {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	image, _ := ebiten.NewImageFromImage(g.p.Image, ebiten.FilterDefault)
+	image := ebiten.NewImageFromImage(g.p.Image)
 	screen.DrawImage(image, &ebiten.DrawImageOptions{})
 }
 
