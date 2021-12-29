@@ -13,19 +13,26 @@ func TestJumps(t *testing.T) {
 
 	target := uint16(0x8000)
 	c.PC = 0
-	c.JumpNZ(target)
-	assert.Equal(t, c.PC, uint16(3))
+
+	pcInc, cycleInc := c.JumpNZ(target)
+	assert.Equal(t, pcInc, 3)
+	assert.Equal(t, cycleInc, 12)
 
 	c.PC = 0
-	c.JumpZ(target)
+	pcInc, cycleInc = c.JumpZ(target)
+	assert.Equal(t, pcInc, 0)
+	assert.Equal(t, cycleInc, 16)
 	assert.Equal(t, c.PC, uint16(0x8000))
 
 	c.PC = 0
-	c.JumpC(target)
-	assert.Equal(t, c.PC, uint16(3))
+	pcInc, cycleInc = c.JumpC(target)
+	assert.Equal(t, pcInc, 3)
+	assert.Equal(t, cycleInc, 12)
 
 	c.PC = 0
-	c.JumpNC(target)
+	pcInc, cycleInc = c.JumpNC(target)
+	assert.Equal(t, pcInc, 0)
+	assert.Equal(t, cycleInc, 16)
 	assert.Equal(t, c.PC, uint16(0x8000))
 }
 
@@ -56,19 +63,26 @@ func TestRet(t *testing.T) {
 	c.pushPC()
 
 	c.PC = 0x110
-	c.RetZ()
-	assert.Equal(t, c.PC, uint16(0x111))
-	c.RetNZ()
-	assert.Equal(t, c.PC, uint16(0x100))
+	pcInc, cycleInc := c.RetZ()
+	assert.Equal(t, pcInc, 1)
+	assert.Equal(t, cycleInc, 8)
+
+	pcInc, cycleInc = c.RetNZ()
+	assert.Equal(t, pcInc, 0)
+	assert.Equal(t, cycleInc, 20)
 
 	c.SetFlag(CFlag)
 	c.PC = 0x200
 	c.pushPC()
 
 	c.PC = 0x300
-	c.RetNC()
-	assert.Equal(t, c.PC, uint16(0x301))
-	c.RetC()
+	pcInc, cycleInc = c.RetNC()
+	assert.Equal(t, pcInc, 1)
+	assert.Equal(t, cycleInc, 8)
+
+	pcInc, cycleInc = c.RetC()
+	assert.Equal(t, pcInc, 0)
+	assert.Equal(t, cycleInc, 20)
 	assert.Equal(t, c.PC, uint16(0x200))
 }
 
@@ -83,12 +97,19 @@ func TestCall(t *testing.T) {
 	assert.Equal(t, c.ram[c.SP+1], byte(0x1))
 
 	c.SetFlag(ZFlag)
-	c.CallNZ(0x300)
-	assert.Equal(t, c.PC, uint16(0x203))
-	c.CallC(0x400)
-	assert.Equal(t, c.PC, uint16(0x206))
-	c.CallZ(0x300)
-	assert.Equal(t, c.PC, uint16(0x300))
-	assert.Equal(t, c.ram[c.SP], byte(0x09))
-	assert.Equal(t, c.ram[c.SP+1], byte(0x2))
+	pcInc, cycleInc := c.CallNZ(0x300)
+	assert.Equal(t, 3, pcInc)
+	assert.Equal(t, 12, cycleInc)
+
+	pcInc, cycleInc = c.CallC(0x400)
+	assert.Equal(t, 3, pcInc)
+	assert.Equal(t, 12, cycleInc)
+
+	pcInc, cycleInc = c.CallZ(0x300)
+	assert.Equal(t, 0, pcInc)
+	assert.Equal(t, 24, cycleInc)
+
+	assert.Equal(t, uint16(0x300), c.PC)
+	assert.Equal(t, byte(0x03), c.ram[c.SP])
+	assert.Equal(t, byte(0x2), c.ram[c.SP+1])
 }

@@ -4,6 +4,8 @@ import (
 	"crypto/md5"
 	"io/ioutil"
 	"testing"
+
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -35,9 +37,8 @@ func TestRunBlarggTests(t *testing.T) {
 	}
 
 	// emulator state should be always exactly the same after the test passes
-	if cpu.PC != 0x06F1 || cpu.cycleCounter != 234917420 {
-		t.Errorf("Blargg test failed.")
-	}
+	assert.Equal(t, uint16(0x06F1), cpu.PC)
+	assert.Equal(t, uint64(0xe023860), cpu.cycleCounter)
 
 	hasher := md5.New()
 	for i := 0; i < 144; i++ {

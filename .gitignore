@@ -6,3 +6,4 @@ emulator.prof
 *profile.out
 *.txt
 rom/dmg_sound
+rom/cpu_instrs

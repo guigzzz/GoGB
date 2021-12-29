@@ -42,42 +42,42 @@ func (c *CPU) Jump(v uint16) {
 }
 
 // JumpNZ jump if not zero
-func (c *CPU) JumpNZ(target uint16) {
+func (c *CPU) JumpNZ(target uint16) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Jump(target)
+		return 0, 16
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 4
+		return 3, 12
 	}
 }
 
 // JumpZ jump if zero
-func (c *CPU) JumpZ(target uint16) {
+func (c *CPU) JumpZ(target uint16) (pcInc, cycleInc int) {
 	if c.IsFlagSet(ZFlag) {
 		c.Jump(target)
+		return 0, 16
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 4
+		return 3, 12
 	}
 }
 
 // JumpNC jump if not carry
-func (c *CPU) JumpNC(target uint16) {
+func (c *CPU) JumpNC(target uint16) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(CFlag) {
 		c.Jump(target)
+		return 0, 16
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 4
+		return 3, 12
 	}
 }
 
 // JumpC jump if carry
-func (c *CPU) JumpC(target uint16) {
+func (c *CPU) JumpC(target uint16) (pcInc, cycleInc int) {
 	if c.IsFlagSet(CFlag) {
 		c.Jump(target)
+		return 0, 16
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 4
+		return 3, 12
 	}
 }
 
@@ -94,38 +94,42 @@ func (c *CPU) JumpRelative(v byte) {
 }
 
 // JumpRelativeNZ jump if non zero
-func (c *CPU) JumpRelativeNZ(v byte) {
+func (c *CPU) JumpRelativeNZ(v byte) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(ZFlag) {
 		c.JumpRelative(v)
+		return 2, 12
 	} else {
-		c.cycleCounter -= 4
+		return 2, 8
 	}
 }
 
 // JumpRelativeZ jump if zero
-func (c *CPU) JumpRelativeZ(v byte) {
+func (c *CPU) JumpRelativeZ(v byte) (pcInc, cycleInc int) {
 	if c.IsFlagSet(ZFlag) {
 		c.JumpRelative(v)
+		return 2, 12
 	} else {
-		c.cycleCounter -= 4
+		return 2, 8
 	}
 }
 
 // JumpRelativeNC jump if not carry
-func (c *CPU) JumpRelativeNC(v byte) {
+func (c *CPU) JumpRelativeNC(v byte) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(CFlag) {
 		c.JumpRelative(v)
+		return 2, 12
 	} else {
-		c.cycleCounter -= 4
+		return 2, 8
 	}
 }
 
 // JumpRelativeC jump if carry
-func (c *CPU) JumpRelativeC(v byte) {
+func (c *CPU) JumpRelativeC(v byte) (pcInc, cycleInc int) {
 	if c.IsFlagSet(CFlag) {
 		c.JumpRelative(v)
+		return 2, 12
 	} else {
-		c.cycleCounter -= 4
+		return 2, 8
 	}
 }
 
@@ -137,42 +141,43 @@ func (c *CPU) Ret() {
 }
 
 // RetNZ return if not zero
-func (c *CPU) RetNZ() {
+func (c *CPU) RetNZ() (pcInc, cycleInc int) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Ret()
+		return 0, 20
 	} else {
-		c.PC++
-		c.cycleCounter -= 12
+		// branch not taken ?
+		return 1, 8
 	}
 }
 
 // RetZ return if zero
-func (c *CPU) RetZ() {
+func (c *CPU) RetZ() (pcInc, cycleInc int) {
 	if c.IsFlagSet(ZFlag) {
 		c.Ret()
+		return 0, 20
 	} else {
-		c.PC++
-		c.cycleCounter -= 12
+		return 1, 8
 	}
 }
 
 // RetNC return if not carry
-func (c *CPU) RetNC() {
+func (c *CPU) RetNC() (pcInc, cycleInc int) {
 	if !c.IsFlagSet(CFlag) {
 		c.Ret()
+		return 0, 20
 	} else {
-		c.PC++
-		c.cycleCounter -= 12
+		return 1, 8
 	}
 }
 
 // RetC return if carry
-func (c *CPU) RetC() {
+func (c *CPU) RetC() (pcInc, cycleInc int) {
 	if c.IsFlagSet(CFlag) {
 		c.Ret()
+		return 0, 20
 	} else {
-		c.PC++
-		c.cycleCounter -= 12
+		return 1, 8
 	}
 }
 
@@ -188,42 +193,42 @@ func (c *CPU) Call(v uint16) {
 }
 
 // CallNZ call if not zero
-func (c *CPU) CallNZ(v uint16) {
+func (c *CPU) CallNZ(v uint16) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(ZFlag) {
 		c.Call(v)
+		return 0, 24
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 12
+		return 3, 12
 	}
 }
 
 // CallZ call if zero
-func (c *CPU) CallZ(v uint16) {
+func (c *CPU) CallZ(v uint16) (pcInc, cycleInc int) {
 	if c.IsFlagSet(ZFlag) {
 		c.Call(v)
+		return 0, 24
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 12
+		return 3, 12
 	}
 }
 
 // CallNC call if not carry
-func (c *CPU) CallNC(v uint16) {
+func (c *CPU) CallNC(v uint16) (pcInc, cycleInc int) {
 	if !c.IsFlagSet(CFlag) {
 		c.Call(v)
+		return 0, 24
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 12
+		return 3, 12
 	}
 }
 
 // CallC call if carry
-func (c *CPU) CallC(v uint16) {
+func (c *CPU) CallC(v uint16) (pcInc, cycleInc int) {
 	if c.IsFlagSet(CFlag) {
 		c.Call(v)
+		return 0, 24
 	} else {
-		c.PC += 3
-		c.cycleCounter -= 12
+		return 3, 12
 	}
 }
 
