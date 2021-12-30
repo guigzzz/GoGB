@@ -33,6 +33,13 @@ const (
 	NR23 = 0xFF18 // FFFF FFFF Frequency LSB
 	NR24 = 0xFF19 // TL-- -FFF Trigger, Length enable, Frequency MSB
 
+	// Wave
+	NR30 = 0xFF1A // E--- ---- DAC power
+	NR31 = 0xFF1B // LLLL LLLL Length load (256-L)
+	NR32 = 0xFF1C // -VV- ---- Volume code (00=0%, 01=100%, 10=50%, 11=25%)
+	NR33 = 0xFF1D // FFFF FFFF Frequency LSB
+	NR34 = 0xFF1E // TL-- -FFF Trigger, Length enable, Frequency MSB
+
 	// Noise
 	// FF1F -- not used
 	NR41 = 0xFF20 // --LL LLLL Length load (64-L)
@@ -68,6 +75,8 @@ type APUImpl struct {
 	frequencyTimerSquare2   int
 	lengthTimerSquare2      int
 
+	lengthTimerWave int
+
 	frequencyTimerNoise int
 	lengthTimerNoise    int
 	lsfr                int
@@ -96,6 +105,7 @@ func NewAPU(c *CPU) *APUImpl {
 	apu.lsfr = 0
 	apu.lengthTimerSquare1 = 0
 	apu.lengthTimerSquare2 = 0
+	apu.lengthTimerWave = 0
 	apu.lengthTimerNoise = 0
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
@@ -198,17 +208,39 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 1)
 		}
-		// case NR44:
-		// 	fmt.Printf("noise timer: %d\n", a.lengthTimerNoise)
-		// 	if a.lengthTimerNoise == 0 {
-		// 		a.lengthTimerNoise = 64
-		// 	}
-		// 	a.setBit(NR52, 3)
-
-		// case NR41:
-		// 	lengthLoad := a.ram[NR41] & 0b11_1111
-		// 	a.lengthTimerNoise = 64 - int(lengthLoad)
-		// 	fmt.Printf("load noise: %0.8b\n", lengthLoad)
+	case NR30:
+		dacDisabled := value&0x80 == 0
+		if dacDisabled {
+			a.clearBit(NR52, 2)
+		}
+	case NR31:
+		a.lengthTimerWave = 256 - int(a.ram[NR31])
+	case NR34:
+		if a.lengthTimerWave == 0 {
+			a.lengthTimerWave = 256
+		}
+		isTrigger := value&0x80 > 0
+		dacEnabled := a.ram[NR30]&0x80 > 0
+		if isTrigger && dacEnabled {
+			a.setBit(NR52, 2)
+		}
+	case NR41:
+		lengthLoad := a.ram[NR41] & 0b11_1111
+		a.lengthTimerNoise = 64 - int(lengthLoad)
+	case NR42:
+		dacDisabled := value&0xF8 == 0
+		if dacDisabled {
+			a.clearBit(NR52, 3)
+		}
+	case NR44:
+		if a.lengthTimerNoise == 0 {
+			a.lengthTimerNoise = 64
+		}
+		isTrigger := value&0x80 > 0
+		dacEnabled := a.ram[NR42]&0xF8 > 0
+		if isTrigger && dacEnabled {
+			a.setBit(NR52, 3)
+		}
 	}
 }
 
@@ -241,13 +273,19 @@ func (a *APUImpl) updateLengthTimers() {
 		}
 	}
 
-	// if a.isByteBitSet(NR44, 6) && a.lengthTimerNoise > 0 {
-	// 	a.lengthTimerNoise--
-	// 	if a.lengthTimerNoise == 0 {
-	// 		fmt.Println("disable noise")
-	// 		a.clearBit(NR52, 3)
-	// 	}
-	// }
+	if a.isByteBitSet(NR34, 6) && a.lengthTimerWave > 0 {
+		a.lengthTimerWave--
+		if a.lengthTimerWave == 0 {
+			a.clearBit(NR52, 2)
+		}
+	}
+
+	if a.isByteBitSet(NR44, 6) && a.lengthTimerNoise > 0 {
+		a.lengthTimerNoise--
+		if a.lengthTimerNoise == 0 {
+			a.clearBit(NR52, 3)
+		}
+	}
 }
 
 func (a *APUImpl) updateFrameSequencer() {
