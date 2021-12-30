@@ -114,7 +114,7 @@ func (c *CPU) RunSync(allowance int) {
 		}
 		c.checkForTimerIncrementAndInterrupt(increment)
 		for i := 0; i < int(increment); i++ {
-			c.apu.StepAPU(1)
+			c.apu.StepAPU()
 		}
 		c.cycleCounter += increment
 	}

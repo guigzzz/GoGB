@@ -7,14 +7,16 @@ import (
 
 type APU interface {
 	ToReadCloser() io.ReadCloser
-	StepAPU(cycles int)
+	StepAPU()
+	AudioRegisterWriteCallback(addr uint16, value byte)
 }
 
 type NullAPU struct{}
 
-func (a *NullAPU) StepAPU(cycles int)          {}
-func (a *NullAPU) Read(p []byte) (int, error)  { return 0, nil }
-func (a *NullAPU) ToReadCloser() io.ReadCloser { return io.NopCloser(a) }
+func (a *NullAPU) StepAPU()                                    {}
+func (a *NullAPU) Read(p []byte) (int, error)                  { return 0, nil }
+func (a *NullAPU) ToReadCloser() io.ReadCloser                 { return io.NopCloser(a) }
+func (a *NullAPU) AudioRegisterWriteCallback(_ uint16, _ byte) {}
 
 const (
 	// Square 1
@@ -56,15 +58,21 @@ var CODE_TO_DIVISOR = [8]byte{8, 16, 32, 48, 64, 80, 96, 112}
 type APUImpl struct {
 	ram []byte
 
-	cycleCounter            int
+	cycleCounter int
+
 	waveDutyPositionSquare1 int
 	frequencyTimerSquare1   int
+	lengthTimerSquare1      int
 
 	waveDutyPositionSquare2 int
 	frequencyTimerSquare2   int
+	lengthTimerSquare2      int
 
 	frequencyTimerNoise int
+	lengthTimerNoise    int
 	lsfr                int
+
+	frameSequencerCounter byte
 
 	sampleBuf []byte
 	samples   chan []byte
@@ -86,6 +94,9 @@ func NewAPU(c *CPU) *APUImpl {
 	apu.frequencyTimerSquare2 = 0
 	apu.frequencyTimerNoise = 0
 	apu.lsfr = 0
+	apu.lengthTimerSquare1 = 0
+	apu.lengthTimerSquare2 = 0
+	apu.lengthTimerNoise = 0
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
 	apu.samples = make(chan []byte)
@@ -150,8 +161,122 @@ func (a *APUImpl) getNoiseOutput() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
-func (a *APUImpl) updateState(cycles int) {
-	a.frequencyTimerSquare1 -= cycles
+func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
+
+	switch addr {
+	case NR11:
+		lengthLoad := a.ram[NR11] & 0b11_1111
+		a.lengthTimerSquare1 = 64 - int(lengthLoad)
+	case NR12:
+		dacDisabled := value&0xF8 == 0
+		if dacDisabled {
+			a.clearBit(NR52, 0)
+		}
+	case NR14:
+		if a.lengthTimerSquare1 == 0 {
+			a.lengthTimerSquare1 = 64
+		}
+		isTrigger := value&0x80 > 0
+		dacEnabled := a.ram[NR12]&0xF8 > 0
+		if isTrigger && dacEnabled {
+			a.setBit(NR52, 0)
+		}
+	case NR21:
+		lengthLoad := a.ram[NR21] & 0b11_1111
+		a.lengthTimerSquare2 = 64 - int(lengthLoad)
+	case NR22:
+		dacDisabled := value&0xF8 == 0
+		if dacDisabled {
+			a.clearBit(NR52, 1)
+		}
+	case NR24:
+		if a.lengthTimerSquare2 == 0 {
+			a.lengthTimerSquare2 = 64
+		}
+		isTrigger := value&0x80 > 0
+		dacEnabled := a.ram[NR22]&0xF8 > 0
+		if isTrigger && dacEnabled {
+			a.setBit(NR52, 1)
+		}
+		// case NR44:
+		// 	fmt.Printf("noise timer: %d\n", a.lengthTimerNoise)
+		// 	if a.lengthTimerNoise == 0 {
+		// 		a.lengthTimerNoise = 64
+		// 	}
+		// 	a.setBit(NR52, 3)
+
+		// case NR41:
+		// 	lengthLoad := a.ram[NR41] & 0b11_1111
+		// 	a.lengthTimerNoise = 64 - int(lengthLoad)
+		// 	fmt.Printf("load noise: %0.8b\n", lengthLoad)
+	}
+}
+
+func (a *APUImpl) clearBit(addr uint16, bit uint) {
+	if bit > 7 {
+		panic("unexpected")
+	}
+	a.ram[addr] &^= 1 << bit
+}
+
+func (a *APUImpl) setBit(addr uint16, bit uint) {
+	if bit > 7 {
+		panic("unexpected")
+	}
+	a.ram[addr] |= 1 << bit
+}
+
+func (a *APUImpl) updateLengthTimers() {
+	if a.isByteBitSet(NR14, 6) && a.lengthTimerSquare1 > 0 {
+		a.lengthTimerSquare1--
+		if a.lengthTimerSquare1 == 0 {
+			a.clearBit(NR52, 0)
+		}
+	}
+
+	if a.isByteBitSet(NR24, 6) && a.lengthTimerSquare2 > 0 {
+		a.lengthTimerSquare2--
+		if a.lengthTimerSquare2 == 0 {
+			a.clearBit(NR52, 1)
+		}
+	}
+
+	// if a.isByteBitSet(NR44, 6) && a.lengthTimerNoise > 0 {
+	// 	a.lengthTimerNoise--
+	// 	if a.lengthTimerNoise == 0 {
+	// 		fmt.Println("disable noise")
+	// 		a.clearBit(NR52, 3)
+	// 	}
+	// }
+}
+
+func (a *APUImpl) updateFrameSequencer() {
+
+	if a.cycleCounter%8192 > 0 {
+		return
+	}
+
+	if a.frameSequencerCounter%2 == 0 {
+		a.updateLengthTimers()
+	}
+
+	// if a.frameSequencerCounter%8 == 7 {
+	// 	// vol env
+	// }
+
+	// modFour := a.frameSequencerCounter % 4
+	// if modFour == 2 || modFour == 6 {
+	// 	// sweep
+	// }
+
+	a.frameSequencerCounter++
+}
+
+func (a *APUImpl) updateState() {
+
+	a.updateFrameSequencer()
+
+	a.frequencyTimerSquare1--
 	if a.frequencyTimerSquare1 <= 0 {
 		lsb := a.ram[NR13]
 		msb := a.ram[NR14] & 0b111
@@ -160,7 +285,7 @@ func (a *APUImpl) updateState(cycles int) {
 		a.waveDutyPositionSquare1 = (a.waveDutyPositionSquare1 + 1) % 8
 	}
 
-	a.frequencyTimerSquare2 -= cycles
+	a.frequencyTimerSquare2--
 	if a.frequencyTimerSquare2 <= 0 {
 		lsb := a.ram[NR23]
 		msb := a.ram[NR24] & 0b111
@@ -169,7 +294,7 @@ func (a *APUImpl) updateState(cycles int) {
 		a.waveDutyPositionSquare2 = (a.waveDutyPositionSquare2 + 1) % 8
 	}
 
-	a.frequencyTimerNoise -= cycles
+	a.frequencyTimerNoise--
 	if a.frequencyTimerNoise <= 0 {
 		shift := a.ram[NR43] & 0b1111_0000 >> 4
 		divisorCode := a.ram[NR43] & 0b111
@@ -197,13 +322,13 @@ func (a *APUImpl) emitSample(sample uint16) {
 	}
 }
 
-func (a *APUImpl) StepAPU(cycles int) {
+func (a *APUImpl) StepAPU() {
 
-	a.updateState(cycles)
+	a.updateState()
 
-	modulo := a.cycleCounter % 87
-	a.cycleCounter += cycles
-	if cycles <= modulo {
+	a.cycleCounter++
+
+	if a.cycleCounter%87 > 0 {
 		return
 	}
 

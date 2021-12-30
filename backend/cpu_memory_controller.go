@@ -53,6 +53,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 				c.ram[address] = value
 			}
 		}
+		c.apu.AudioRegisterWriteCallback(address, value)
 	} else {
 		if address == 0xFF02 && value == 0x81 {
 			c.logger.Log(string(c.ram[0xFF01]))
