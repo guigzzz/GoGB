@@ -18,6 +18,7 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 		{name: "01-registers.gb", successProgramCounter: 0xCAA2},
 		{name: "02-len ctr.gb", successProgramCounter: 0xcef7},
 		{name: "03-trigger.gb", successProgramCounter: 0xc74d},
+		{name: "04-sweep.gb", successProgramCounter: 0xcc63},
 	}
 
 	for _, r := range roms {

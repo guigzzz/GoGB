@@ -70,6 +70,9 @@ type APUImpl struct {
 	waveDutyPositionSquare1 int
 	frequencyTimerSquare1   int
 	lengthTimerSquare1      int
+	sweepEnabled            bool
+	shadowFrequency         int
+	sweepTimer              int
 
 	waveDutyPositionSquare2 int
 	frequencyTimerSquare2   int
@@ -97,16 +100,23 @@ func NewAPU(c *CPU) *APUImpl {
 	apu.ram = c.ram
 
 	apu.cycleCounter = 0
+
 	apu.waveDutyPositionSquare1 = 0
-	apu.waveDutyPositionSquare2 = 0
 	apu.frequencyTimerSquare1 = 0
-	apu.frequencyTimerSquare2 = 0
-	apu.frequencyTimerNoise = 0
-	apu.lsfr = 0
 	apu.lengthTimerSquare1 = 0
+	apu.sweepEnabled = false
+	apu.shadowFrequency = 0
+	apu.sweepTimer = 0
+
+	apu.waveDutyPositionSquare2 = 0
+	apu.frequencyTimerSquare2 = 0
 	apu.lengthTimerSquare2 = 0
-	apu.lengthTimerWave = 0
+
+	apu.frequencyTimerNoise = 0
 	apu.lengthTimerNoise = 0
+	apu.lsfr = 0
+
+	apu.lengthTimerWave = 0
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
 	apu.samples = make(chan []byte)
@@ -215,6 +225,27 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 0)
 		}
+
+		lsb := a.ram[NR13]
+		msb := a.ram[NR14] & 0b111
+		frequency := uint16(msb)<<8 | uint16(lsb)
+		a.shadowFrequency = int(frequency)
+		reg := a.ram[NR10]
+		period := reg & 0b111_0000 >> 4
+		if period == 0 {
+			a.sweepTimer = 8
+		} else {
+			a.sweepTimer = int(period)
+		}
+
+		shift := reg & 0b111
+		a.sweepEnabled = period > 0 || shift > 0
+
+		if shift > 0 {
+			negate := reg&0b1000 > 0
+			a.sweepComputeNewFrequency(int(shift), negate)
+		}
+
 	case NR21:
 		lengthLoad := a.ram[NR21] & 0b11_1111
 		a.lengthTimerSquare2 = 64 - int(lengthLoad)
@@ -384,6 +415,21 @@ func (a *APUImpl) updateLengthTimers() {
 	}
 }
 
+func (a *APUImpl) sweepComputeNewFrequency(shift int, negate bool) int {
+	newFreq := a.shadowFrequency >> int(shift)
+	if negate {
+		newFreq = a.shadowFrequency - newFreq
+	} else {
+		newFreq = a.shadowFrequency + newFreq
+	}
+
+	if newFreq > 2047 {
+		a.clearBit(NR52, 0)
+	}
+
+	return newFreq
+}
+
 func (a *APUImpl) updateFrameSequencer() {
 
 	if a.cycleCounter%8192 > 0 {
@@ -398,10 +444,39 @@ func (a *APUImpl) updateFrameSequencer() {
 	// 	// vol env
 	// }
 
-	// modFour := a.frameSequencerCounter % 4
-	// if modFour == 2 || modFour == 6 {
-	// 	// sweep
-	// }
+	modFour := a.frameSequencerCounter % 4
+	if modFour == 2 || modFour == 6 {
+		// sweep
+		if a.sweepTimer > 0 {
+			a.sweepTimer--
+		}
+		if a.sweepTimer == 0 {
+			reg := a.ram[NR10]
+			period := reg & 0b111_0000 >> 4
+			if period == 0 {
+				a.sweepTimer = 8
+			} else {
+				a.sweepTimer = int(period)
+			}
+
+			shift := reg & 0b111
+			negate := reg&0b1000 > 0
+			if a.sweepEnabled && period > 0 {
+				newFreq := a.sweepComputeNewFrequency(int(shift), negate)
+
+				if newFreq <= 2047 && shift > 0 {
+					a.ram[NR13] = byte(newFreq)
+					a.ram[NR14] = byte(newFreq & 0b111_0000_0000 >> 8)
+
+					a.shadowFrequency = newFreq
+				}
+
+				// for overflow check
+				a.sweepComputeNewFrequency(int(shift), negate)
+			}
+
+		}
+	}
 
 	a.frameSequencerCounter++
 }
