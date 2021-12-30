@@ -34,6 +34,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 	} else if 0xFEA0 <= address && address < 0xFF00 {
 		// ignore
 	} else if 0xFF10 <= address && address <= 0xFF2F {
+		oldValue := c.ram[address]
 		// audio
 		if address == 0xFF26 {
 			// NR52 only top bits are writeable
@@ -53,7 +54,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 				c.ram[address] = value
 			}
 		}
-		c.apu.AudioRegisterWriteCallback(address, value)
+		c.apu.AudioRegisterWriteCallback(address, oldValue, value)
 	} else {
 		if address == 0xFF02 && value == 0x81 {
 			c.logger.Log(string(c.ram[0xFF01]))

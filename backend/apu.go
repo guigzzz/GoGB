@@ -8,15 +8,15 @@ import (
 type APU interface {
 	ToReadCloser() io.ReadCloser
 	StepAPU()
-	AudioRegisterWriteCallback(addr uint16, value byte)
+	AudioRegisterWriteCallback(addr uint16, oldValue, value byte)
 }
 
 type NullAPU struct{}
 
-func (a *NullAPU) StepAPU()                                    {}
-func (a *NullAPU) Read(p []byte) (int, error)                  { return 0, nil }
-func (a *NullAPU) ToReadCloser() io.ReadCloser                 { return io.NopCloser(a) }
-func (a *NullAPU) AudioRegisterWriteCallback(_ uint16, _ byte) {}
+func (a *NullAPU) StepAPU()                                       {}
+func (a *NullAPU) Read(p []byte) (int, error)                     { return 0, nil }
+func (a *NullAPU) ToReadCloser() io.ReadCloser                    { return io.NopCloser(a) }
+func (a *NullAPU) AudioRegisterWriteCallback(_ uint16, _, _ byte) {}
 
 const (
 	// Square 1
@@ -171,7 +171,7 @@ func (a *APUImpl) getNoiseOutput() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
-func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
+func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) {
 
 	switch addr {
 	case NR11:
@@ -183,10 +183,34 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
 			a.clearBit(NR52, 0)
 		}
 	case NR14:
-		if a.lengthTimerSquare1 == 0 {
-			a.lengthTimerSquare1 = 64
-		}
 		isTrigger := value&0x80 > 0
+		isLength := value&0x40 > 0
+		lengthToggled := isLength && oldValue&0x40 == 0
+		notLengthClock := a.frameSequencerCounter%2 == 1
+
+		// Extra length clocking occurs when writing to NRx4 when the frame sequencer's
+		// next step is one that doesn't clock the length counter. In this case, if the
+		// length counter was PREVIOUSLY disabled and now enabled and the length counter
+		// is not zero, it is decremented. If this decrement makes it zero and trigger is clear,
+		// the channel is disabled.
+		if lengthToggled && notLengthClock && a.lengthTimerSquare1 > 0 {
+			a.lengthTimerSquare1--
+			if a.lengthTimerSquare1 == 0 && !isTrigger {
+				a.clearBit(NR52, 0)
+			}
+		}
+
+		// If a channel is triggered when the frame sequencer's next step is one
+		// that doesn't clock the length counter and the length counter is now enabled
+		// and length is being set to 64 (256 for wave channel) because it was previously
+		// zero, it is set to 63 instead (255 for wave channel).
+		if isTrigger && a.lengthTimerSquare1 == 0 {
+			a.lengthTimerSquare1 = 64
+			if isLength && notLengthClock {
+				a.lengthTimerSquare1--
+			}
+		}
+
 		dacEnabled := a.ram[NR12]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 0)
@@ -200,10 +224,34 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
 			a.clearBit(NR52, 1)
 		}
 	case NR24:
-		if a.lengthTimerSquare2 == 0 {
-			a.lengthTimerSquare2 = 64
-		}
 		isTrigger := value&0x80 > 0
+		isLength := value&0x40 > 0
+		lengthToggled := isLength && oldValue&0x40 == 0
+		notLengthClock := a.frameSequencerCounter%2 == 1
+
+		// Extra length clocking occurs when writing to NRx4 when the frame sequencer's
+		// next step is one that doesn't clock the length counter. In this case, if the
+		// length counter was PREVIOUSLY disabled and now enabled and the length counter
+		// is not zero, it is decremented. If this decrement makes it zero and trigger is clear,
+		// the channel is disabled.
+		if lengthToggled && notLengthClock && a.lengthTimerSquare2 > 0 {
+			a.lengthTimerSquare2--
+			if a.lengthTimerSquare2 == 0 && !isTrigger {
+				a.clearBit(NR52, 1)
+			}
+		}
+
+		// If a channel is triggered when the frame sequencer's next step is one
+		// that doesn't clock the length counter and the length counter is now enabled
+		// and length is being set to 64 (256 for wave channel) because it was previously
+		// zero, it is set to 63 instead (255 for wave channel).
+		if isTrigger && a.lengthTimerSquare2 == 0 {
+			a.lengthTimerSquare2 = 64
+			if isLength && notLengthClock {
+				a.lengthTimerSquare2--
+			}
+		}
+
 		dacEnabled := a.ram[NR22]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 1)
@@ -216,10 +264,34 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
 	case NR31:
 		a.lengthTimerWave = 256 - int(a.ram[NR31])
 	case NR34:
-		if a.lengthTimerWave == 0 {
-			a.lengthTimerWave = 256
-		}
 		isTrigger := value&0x80 > 0
+		isLength := value&0x40 > 0
+		lengthToggled := isLength && oldValue&0x40 == 0
+		notLengthClock := a.frameSequencerCounter%2 == 1
+
+		// Extra length clocking occurs when writing to NRx4 when the frame sequencer's
+		// next step is one that doesn't clock the length counter. In this case, if the
+		// length counter was PREVIOUSLY disabled and now enabled and the length counter
+		// is not zero, it is decremented. If this decrement makes it zero and trigger is clear,
+		// the channel is disabled.
+		if lengthToggled && notLengthClock && a.lengthTimerWave > 0 {
+			a.lengthTimerWave--
+			if a.lengthTimerWave == 0 && !isTrigger {
+				a.clearBit(NR52, 2)
+			}
+		}
+
+		// If a channel is triggered when the frame sequencer's next step is one
+		// that doesn't clock the length counter and the length counter is now enabled
+		// and length is being set to 64 (256 for wave channel) because it was previously
+		// zero, it is set to 63 instead (255 for wave channel).
+		if isTrigger && a.lengthTimerWave == 0 {
+			a.lengthTimerWave = 256
+			if isLength && notLengthClock {
+				a.lengthTimerWave--
+			}
+		}
+
 		dacEnabled := a.ram[NR30]&0x80 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 2)
@@ -233,10 +305,34 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, value byte) {
 			a.clearBit(NR52, 3)
 		}
 	case NR44:
-		if a.lengthTimerNoise == 0 {
-			a.lengthTimerNoise = 64
-		}
 		isTrigger := value&0x80 > 0
+		isLength := value&0x40 > 0
+		lengthToggled := isLength && oldValue&0x40 == 0
+		notLengthClock := a.frameSequencerCounter%2 == 1
+
+		// Extra length clocking occurs when writing to NRx4 when the frame sequencer's
+		// next step is one that doesn't clock the length counter. In this case, if the
+		// length counter was PREVIOUSLY disabled and now enabled and the length counter
+		// is not zero, it is decremented. If this decrement makes it zero and trigger is clear,
+		// the channel is disabled.
+		if lengthToggled && notLengthClock && a.lengthTimerNoise > 0 {
+			a.lengthTimerNoise--
+			if a.lengthTimerNoise == 0 && !isTrigger {
+				a.clearBit(NR52, 3)
+			}
+		}
+
+		// If a channel is triggered when the frame sequencer's next step is one
+		// that doesn't clock the length counter and the length counter is now enabled
+		// and length is being set to 64 (256 for wave channel) because it was previously
+		// zero, it is set to 63 instead (255 for wave channel).
+		if isTrigger && a.lengthTimerNoise == 0 {
+			a.lengthTimerNoise = 64
+			if isLength && notLengthClock {
+				a.lengthTimerNoise--
+			}
+		}
+
 		dacEnabled := a.ram[NR42]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 3)
