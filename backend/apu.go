@@ -78,7 +78,9 @@ type APUImpl struct {
 	frequencyTimerSquare2   int
 	lengthTimerSquare2      int
 
-	lengthTimerWave int
+	frequencyTimerWave  int
+	positionCounterWave int
+	lengthTimerWave     int
 
 	frequencyTimerNoise int
 	lengthTimerNoise    int
@@ -116,6 +118,8 @@ func NewAPU(c *CPU) *APUImpl {
 	apu.lengthTimerNoise = 0
 	apu.lsfr = 0
 
+	apu.frequencyTimerWave = 0
+	apu.positionCounterWave = 0
 	apu.lengthTimerWave = 0
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
@@ -140,10 +144,14 @@ func boolToNum(b bool) byte {
 
 func (a *APUImpl) getSquare1Output() (byte, byte) {
 	duty := a.ram[NR11] & 0b1100_000 >> 6
-	volume := byte(0xFF) // a.ram[NR12] & 0b1111_0000 >> 4
+	volume := a.ram[NR12] & 0b1111_0000 >> 4
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare1]
 	output := amplitude * volume
+
+	if !a.isByteBitSet(uint16(a.ram[NR52]), 0) {
+		output = 0
+	}
 
 	leftEnable := a.isByteBitSet(NR51, 4)
 	rightEnable := a.isByteBitSet(NR51, 0)
@@ -155,7 +163,7 @@ func (a *APUImpl) getSquare1Output() (byte, byte) {
 
 func (a *APUImpl) getSquare2Output() (byte, byte) {
 	duty := a.ram[NR21] & 0b1100_000 >> 6
-	volume := byte(0xFF) // a.ram[NR22] & 0b1111_0000 >> 4
+	volume := a.ram[NR22] & 0b1111_0000 >> 4
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare2]
 	output := amplitude * volume
@@ -168,8 +176,31 @@ func (a *APUImpl) getSquare2Output() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
+var volumeCodeToShift = [4]byte{4, 0, 1, 2}
+
+func (a *APUImpl) getWaveOutput() (byte, byte) {
+
+	index := a.positionCounterWave / 2
+
+	sample := a.ram[0xFF30+index]
+	shift := volumeCodeToShift[a.ram[NR32]&0b110_0000>>5]
+
+	if a.positionCounterWave%2 > 0 {
+		sample >>= 4
+	}
+
+	output := sample & 0xF >> shift
+
+	leftEnable := a.isByteBitSet(NR51, 6)
+	rightEnable := a.isByteBitSet(NR51, 2)
+
+	leftOutput := boolToNum(leftEnable) * output
+	rightOutput := boolToNum(rightEnable) * output
+	return leftOutput, rightOutput
+}
+
 func (a *APUImpl) getNoiseOutput() (byte, byte) {
-	volume := byte(0xFF) // a.ram[NR42] & 0b1111_0000 >> 4
+	volume := a.ram[NR42] & 0b1111_0000 >> 4
 	amplitude := byte((^a.lsfr) & 1)
 	output := amplitude * volume
 
@@ -503,6 +534,15 @@ func (a *APUImpl) updateState() {
 		a.waveDutyPositionSquare2 = (a.waveDutyPositionSquare2 + 1) % 8
 	}
 
+	a.frequencyTimerWave--
+	if a.frequencyTimerWave <= 0 {
+		lsb := a.ram[NR33]
+		msb := a.ram[NR34] & 0b111
+		frequency := uint16(msb)<<8 | uint16(lsb)
+		a.frequencyTimerWave = int((2048 - frequency) * 2)
+		a.positionCounterWave = (a.positionCounterWave + 1) % 64
+	}
+
 	a.frequencyTimerNoise--
 	if a.frequencyTimerNoise <= 0 {
 		shift := a.ram[NR43] & 0b1111_0000 >> 4
@@ -543,13 +583,14 @@ func (a *APUImpl) StepAPU() {
 
 	leftSquare1Output, rightSquare1Output := a.getSquare1Output()
 	leftSquare2Output, rightSquare2Output := a.getSquare2Output()
+	leftWaveOutput, rightWaveOutput := a.getWaveOutput()
 	leftNoiseOutput, rightNoiseOutput := a.getNoiseOutput()
 
 	leftVolume := uint16(a.ram[NR50] & 0b111_0000 >> 4)
 	rightVolume := uint16(a.ram[NR50] & 0b111)
 
-	left := leftVolume * (uint16(leftSquare1Output) + uint16(leftSquare2Output) + uint16(leftNoiseOutput)) / 3
-	right := rightVolume * (uint16(rightSquare1Output) + uint16(rightSquare2Output) + uint16(rightNoiseOutput)) / 3
+	left := leftVolume * (uint16(leftSquare1Output) + uint16(leftSquare2Output) + uint16(leftWaveOutput) + uint16(leftNoiseOutput)) / 4
+	right := rightVolume * (uint16(rightSquare1Output) + uint16(rightSquare2Output) + uint16(rightWaveOutput) + uint16(rightNoiseOutput)) / 4
 
 	a.emitSample(left)
 	a.emitSample(right)
