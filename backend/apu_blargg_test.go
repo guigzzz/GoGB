@@ -19,6 +19,7 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 		{name: "02-len ctr.gb", successProgramCounter: 0xcef7},
 		{name: "03-trigger.gb", successProgramCounter: 0xc74d},
 		{name: "04-sweep.gb", successProgramCounter: 0xcc63},
+		{name: "06-overflow on trigger.gb", successProgramCounter: 0xc93e},
 	}
 
 	for _, r := range roms {
