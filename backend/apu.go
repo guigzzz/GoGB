@@ -70,6 +70,8 @@ type APUImpl struct {
 	waveDutyPositionSquare1 int
 	frequencyTimerSquare1   int
 	lengthTimerSquare1      int
+	periodTimerSquare1      int
+	currentVolumeSquare1    int
 	sweepEnabled            bool
 	shadowFrequency         int
 	sweepTimer              int
@@ -77,6 +79,8 @@ type APUImpl struct {
 	waveDutyPositionSquare2 int
 	frequencyTimerSquare2   int
 	lengthTimerSquare2      int
+	periodTimerSquare2      int
+	currentVolumeSquare2    int
 
 	frequencyTimerWave  int
 	positionCounterWave int
@@ -85,6 +89,8 @@ type APUImpl struct {
 	frequencyTimerNoise int
 	lengthTimerNoise    int
 	lsfr                int
+	periodTimerNoise    int
+	currentVolumeNoise  int
 
 	frameSequencerCounter byte
 
@@ -100,27 +106,6 @@ func NewAPU(c *CPU) *APUImpl {
 	apu := new(APUImpl)
 
 	apu.ram = c.ram
-
-	apu.cycleCounter = 0
-
-	apu.waveDutyPositionSquare1 = 0
-	apu.frequencyTimerSquare1 = 0
-	apu.lengthTimerSquare1 = 0
-	apu.sweepEnabled = false
-	apu.shadowFrequency = 0
-	apu.sweepTimer = 0
-
-	apu.waveDutyPositionSquare2 = 0
-	apu.frequencyTimerSquare2 = 0
-	apu.lengthTimerSquare2 = 0
-
-	apu.frequencyTimerNoise = 0
-	apu.lengthTimerNoise = 0
-	apu.lsfr = 0
-
-	apu.frequencyTimerWave = 0
-	apu.positionCounterWave = 0
-	apu.lengthTimerWave = 0
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
 	apu.samples = make(chan []byte)
@@ -144,12 +129,11 @@ func boolToNum(b bool) byte {
 
 func (a *APUImpl) getSquare1Output() (byte, byte) {
 	duty := a.ram[NR11] & 0b1100_000 >> 6
-	volume := a.ram[NR12] & 0b1111_0000 >> 4
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare1]
-	output := amplitude * volume
+	output := amplitude * byte(a.currentVolumeSquare1)
 
-	if !a.isByteBitSet(uint16(a.ram[NR52]), 0) {
+	if !a.isByteBitSet(NR52, 0) {
 		output = 0
 	}
 
@@ -163,10 +147,13 @@ func (a *APUImpl) getSquare1Output() (byte, byte) {
 
 func (a *APUImpl) getSquare2Output() (byte, byte) {
 	duty := a.ram[NR21] & 0b1100_000 >> 6
-	volume := a.ram[NR22] & 0b1111_0000 >> 4
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare2]
-	output := amplitude * volume
+	output := amplitude * byte(a.currentVolumeSquare2)
+
+	if !a.isByteBitSet(NR52, 1) {
+		output = 0
+	}
 
 	leftEnable := a.isByteBitSet(NR51, 5)
 	rightEnable := a.isByteBitSet(NR51, 1)
@@ -191,6 +178,10 @@ func (a *APUImpl) getWaveOutput() (byte, byte) {
 
 	output := sample & 0xF >> shift
 
+	if !a.isByteBitSet(NR52, 2) {
+		output = 0
+	}
+
 	leftEnable := a.isByteBitSet(NR51, 6)
 	rightEnable := a.isByteBitSet(NR51, 2)
 
@@ -200,9 +191,12 @@ func (a *APUImpl) getWaveOutput() (byte, byte) {
 }
 
 func (a *APUImpl) getNoiseOutput() (byte, byte) {
-	volume := a.ram[NR42] & 0b1111_0000 >> 4
 	amplitude := byte((^a.lsfr) & 1)
-	output := amplitude * volume
+	output := amplitude * byte(a.currentVolumeNoise)
+
+	if !a.isByteBitSet(NR52, 3) {
+		output = 0
+	}
 
 	leftEnable := a.isByteBitSet(NR51, 7)
 	rightEnable := a.isByteBitSet(NR51, 3)
@@ -255,6 +249,11 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		dacEnabled := a.ram[NR12]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 0)
+		}
+
+		if isTrigger {
+			a.periodTimerSquare1 = int(a.ram[NR12] & 0b111)
+			a.currentVolumeSquare1 = int(a.ram[NR12] >> 4)
 		}
 
 		lsb := a.ram[NR13]
@@ -317,6 +316,11 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		dacEnabled := a.ram[NR22]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 1)
+		}
+
+		if isTrigger {
+			a.periodTimerSquare2 = int(a.ram[NR22] & 0b111)
+			a.currentVolumeSquare2 = int(a.ram[NR22] >> 4)
 		}
 	case NR30:
 		dacDisabled := value&0x80 == 0
@@ -398,6 +402,11 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		dacEnabled := a.ram[NR42]&0xF8 > 0
 		if isTrigger && dacEnabled {
 			a.setBit(NR52, 3)
+		}
+
+		if isTrigger {
+			a.periodTimerNoise = int(a.ram[NR42] & 0b111)
+			a.currentVolumeNoise = int(a.ram[NR42] >> 4)
 		}
 	}
 }
@@ -493,6 +502,61 @@ func (a *APUImpl) updateSweep() {
 	}
 }
 
+func (a *APUImpl) updateVolumeEnvelope() {
+
+	if a.ram[NR12]&0b111 > 0 {
+		if a.periodTimerSquare1 > 0 {
+			a.periodTimerSquare1--
+		}
+
+		if a.periodTimerSquare1 == 0 {
+			a.periodTimerSquare1 = int(a.ram[NR12] & 0b111)
+
+			isAdd := a.ram[NR12]&0x8 > 0
+			if isAdd && a.currentVolumeSquare1 < 0xF {
+				a.currentVolumeSquare1++
+			} else if !isAdd && a.currentVolumeSquare1 > 0 {
+				a.currentVolumeSquare1--
+			}
+		}
+	}
+
+	if a.ram[NR22]&0b111 > 0 {
+		if a.periodTimerSquare2 > 0 {
+			a.periodTimerSquare2--
+		}
+
+		if a.periodTimerSquare2 == 0 {
+			a.periodTimerSquare2 = int(a.ram[NR22] & 0b111)
+
+			isAdd := a.ram[NR12]&0x8 > 0
+			if isAdd && a.currentVolumeSquare2 < 0xF {
+				a.currentVolumeSquare2++
+			} else if !isAdd && a.currentVolumeSquare2 > 0 {
+				a.currentVolumeSquare2--
+			}
+		}
+	}
+
+	if a.ram[NR42]&0b111 > 0 {
+		if a.periodTimerNoise > 0 {
+			a.periodTimerNoise--
+		}
+
+		if a.periodTimerNoise == 0 {
+			a.periodTimerNoise = int(a.ram[NR42] & 0b111)
+
+			isAdd := a.ram[NR12]&0x8 > 0
+			if isAdd && a.currentVolumeNoise < 0xF {
+				a.currentVolumeNoise++
+			} else if !isAdd && a.currentVolumeNoise > 0 {
+				a.currentVolumeNoise--
+			}
+		}
+	}
+
+}
+
 func (a *APUImpl) updateFrameSequencer() {
 
 	if a.cycleCounter%8192 > 0 {
@@ -503,9 +567,9 @@ func (a *APUImpl) updateFrameSequencer() {
 		a.updateLengthTimers()
 	}
 
-	// if a.frameSequencerCounter%8 == 7 {
-	// 	// vol env
-	// }
+	if a.frameSequencerCounter%8 == 7 {
+		a.updateVolumeEnvelope()
+	}
 
 	modFour := a.frameSequencerCounter % 4
 	if modFour == 2 || modFour == 6 {
@@ -553,12 +617,12 @@ func (a *APUImpl) updateState() {
 		divisor := CODE_TO_DIVISOR[divisorCode]
 		a.frequencyTimerNoise = int(divisor) << int(shift)
 
-		width := a.isByteBitSet(NR43, 3)
-
 		xor := (a.lsfr & 1) ^ (a.lsfr & 2 >> 1)
 		newLsfr := (a.lsfr>>1)&0b1011_1111_1111_1111 | (xor << 14)
+
+		width := a.isByteBitSet(NR43, 3)
 		if width {
-			newLsfr = newLsfr&0b1111_1111_1011_111 | (xor << 6)
+			newLsfr = newLsfr&0b1111_1111_1011_1111 | (xor << 6)
 		}
 		a.lsfr = newLsfr
 	}
