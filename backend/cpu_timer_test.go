@@ -10,7 +10,7 @@ func TestTimerFiresWhenItShould(t *testing.T) {
 
 	c := NewTestCPU()
 
-	c.cycleCounter = 1020
+	c.cycleCounter = 1024
 
 	tma := byte(0x5)
 
@@ -18,7 +18,7 @@ func TestTimerFiresWhenItShould(t *testing.T) {
 	c.ram[0xFF06] = tma   // TMA
 	c.ram[0xFF05] = 0xFF  // TIMA
 
-	c.checkForTimerIncrementAndInterrupt(10)
+	c.checkForTimerIncrementAndInterrupt()
 
 	assert.Equal(t, tma, c.ram[0xFF05])
 	assert.Equal(t, byte(0x4), c.ram[0xFF0F])
@@ -28,7 +28,7 @@ func TestTimerDoesNotFireWhenTimerOff(t *testing.T) {
 
 	c := NewTestCPU()
 
-	c.cycleCounter = 1020
+	c.cycleCounter = 1024
 
 	tma := byte(0x5)
 
@@ -36,7 +36,7 @@ func TestTimerDoesNotFireWhenTimerOff(t *testing.T) {
 	c.ram[0xFF06] = tma  // TMA
 	c.ram[0xFF05] = 0xFF // TIMA
 
-	c.checkForTimerIncrementAndInterrupt(10)
+	c.checkForTimerIncrementAndInterrupt()
 
 	assert.Equal(t, byte(0xFF), c.ram[0xFF05])
 	assert.Equal(t, byte(0), c.ram[0xFF0F])
@@ -46,7 +46,7 @@ func TestTimerDoesNotFireWhenItShouldNot(t *testing.T) {
 
 	c := NewTestCPU()
 
-	c.cycleCounter = 1010
+	c.cycleCounter = 1020
 
 	tma := byte(0x5)
 
@@ -54,7 +54,7 @@ func TestTimerDoesNotFireWhenItShouldNot(t *testing.T) {
 	c.ram[0xFF06] = tma   // TMA
 	c.ram[0xFF05] = 0xFF  // TIMA
 
-	c.checkForTimerIncrementAndInterrupt(10)
+	c.checkForTimerIncrementAndInterrupt()
 
 	assert.Equal(t, byte(0xFF), c.ram[0xFF05])
 	assert.Equal(t, byte(0), c.ram[0xFF0F])

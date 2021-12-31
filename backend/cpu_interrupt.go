@@ -63,7 +63,7 @@ func tacToPeriod(tac byte) uint64 {
 	}
 }
 
-func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
+func (c *CPU) checkForTimerIncrementAndInterrupt() {
 
 	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
 
@@ -75,7 +75,7 @@ func (c *CPU) checkForTimerIncrementAndInterrupt(cycleIncrement uint64) {
 
 	timerPeriod := tacToPeriod(tac)
 	modulo := c.cycleCounter & (timerPeriod - 1)
-	if cycleIncrement < timerPeriod-modulo {
+	if modulo > 0 {
 		return
 	}
 

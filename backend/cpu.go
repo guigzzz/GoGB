@@ -112,11 +112,15 @@ func (c *CPU) RunSync(allowance int) {
 		} else {
 			increment = uint64(cycleIncrement)
 		}
-		c.checkForTimerIncrementAndInterrupt(increment)
+
 		for i := 0; i < int(increment); i++ {
 			c.apu.StepAPU()
 		}
-		c.cycleCounter += increment
+
+		for inc := 0; inc < int(increment); inc += 4 {
+			c.cycleCounter += 4
+			c.checkForTimerIncrementAndInterrupt()
+		}
 	}
 }
 

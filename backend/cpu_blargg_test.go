@@ -10,6 +10,7 @@ import (
 
 const (
 	blargg = "../rom/cpu_instrs.gb"
+	timing = "../rom/instr_timing.gb"
 	wario  = "../rom/wario_walking_demo.gb"
 )
 
@@ -57,6 +58,18 @@ func TestRunBlarggTests(t *testing.T) {
 			return
 		}
 	}
+}
+
+func TestRunInstrTimingTest(t *testing.T) {
+	ppu, cpu := Init(timing)
+
+	for cpu.PC != 0xc8b0 && cpu.cycleCounter < 500000000 {
+		ppu.RunEmulatorForAFrame()
+	}
+
+	// emulator state should be always exactly the same after the test passes
+	assert.Equal(t, uint16(0xc8b0), cpu.PC)
+	assert.Equal(t, uint64(0x2b8178), cpu.cycleCounter)
 }
 
 func BenchmarkRunEmulatorForAFrame(b *testing.B) {
