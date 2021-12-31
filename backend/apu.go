@@ -185,7 +185,7 @@ func (a *APUImpl) getWaveOutput() (byte, byte) {
 	sample := a.ram[0xFF30+index]
 	shift := volumeCodeToShift[a.ram[NR32]&0b110_0000>>5]
 
-	if a.positionCounterWave%2 > 0 {
+	if a.positionCounterWave%2 == 0 {
 		sample >>= 4
 	}
 
@@ -461,6 +461,38 @@ func (a *APUImpl) sweepComputeNewFrequency(shift int, negate bool) int {
 	return newFreq
 }
 
+func (a *APUImpl) updateSweep() {
+	if a.sweepTimer > 0 {
+		a.sweepTimer--
+	}
+	if a.sweepTimer == 0 {
+		reg := a.ram[NR10]
+		period := reg & 0b111_0000 >> 4
+		if period == 0 {
+			a.sweepTimer = 8
+		} else {
+			a.sweepTimer = int(period)
+		}
+
+		shift := reg & 0b111
+		negate := reg&0b1000 > 0
+		if a.sweepEnabled && period > 0 {
+			newFreq := a.sweepComputeNewFrequency(int(shift), negate)
+
+			if newFreq <= 2047 && shift > 0 {
+				a.ram[NR13] = byte(newFreq)
+				a.ram[NR14] = byte(newFreq & 0b111_0000_0000 >> 8)
+
+				a.shadowFrequency = newFreq
+			}
+
+			// for overflow check
+			a.sweepComputeNewFrequency(int(shift), negate)
+		}
+
+	}
+}
+
 func (a *APUImpl) updateFrameSequencer() {
 
 	if a.cycleCounter%8192 > 0 {
@@ -477,36 +509,7 @@ func (a *APUImpl) updateFrameSequencer() {
 
 	modFour := a.frameSequencerCounter % 4
 	if modFour == 2 || modFour == 6 {
-		// sweep
-		if a.sweepTimer > 0 {
-			a.sweepTimer--
-		}
-		if a.sweepTimer == 0 {
-			reg := a.ram[NR10]
-			period := reg & 0b111_0000 >> 4
-			if period == 0 {
-				a.sweepTimer = 8
-			} else {
-				a.sweepTimer = int(period)
-			}
-
-			shift := reg & 0b111
-			negate := reg&0b1000 > 0
-			if a.sweepEnabled && period > 0 {
-				newFreq := a.sweepComputeNewFrequency(int(shift), negate)
-
-				if newFreq <= 2047 && shift > 0 {
-					a.ram[NR13] = byte(newFreq)
-					a.ram[NR14] = byte(newFreq & 0b111_0000_0000 >> 8)
-
-					a.shadowFrequency = newFreq
-				}
-
-				// for overflow check
-				a.sweepComputeNewFrequency(int(shift), negate)
-			}
-
-		}
+		a.updateSweep()
 	}
 
 	a.frameSequencerCounter++
