@@ -4,6 +4,15 @@ var (
 	handlerAddresses = [5]uint16{0x40, 0x48, 0x50, 0x58, 0x60}
 )
 
+const (
+	DIV  = 0xFF04
+	TIMA = 0xFF05
+	TMA  = 0xFF06
+	TAC  = 0xFF07
+	IF   = 0xFF0F
+	IE   = 0xFFFF
+)
+
 // Bit 0: V-Blank  Interrupt Request (INT 40h)  (1=Request)
 // Bit 1: LCD STAT Interrupt Request (INT 48h)  (1=Request)
 // Bit 2: Timer    Interrupt Request (INT 50h)  (1=Request)
@@ -11,7 +20,7 @@ var (
 // Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
 
 func (c *CPU) getInterruptRegisters() (byte, byte) {
-	return c.ram[0xFF0F], c.ram[0xFFFF]
+	return c.ram[IF], c.ram[IE]
 }
 
 func (c *CPU) CheckAndHandleInterrupts() {
@@ -32,7 +41,7 @@ func (c *CPU) CheckAndHandleInterrupts() {
 		if IF&IE&mask > 0 {
 			c.IME = false
 
-			c.ram[0xFF0F] &^= mask
+			c.ram[IF] &^= mask
 
 			// we are either not halted
 			// or halted but will handle interrupt (i.e. mode 1)
@@ -65,9 +74,9 @@ func tacToPeriod(tac byte) uint64 {
 
 func (c *CPU) checkForTimerIncrementAndInterrupt() {
 
-	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
+	c.ram[DIV] = byte(c.cycleCounter >> 8) // div
 
-	tac := c.ram[0xFF07]
+	tac := c.ram[TAC]
 
 	if tac&0x4 == 0 {
 		return
@@ -79,15 +88,15 @@ func (c *CPU) checkForTimerIncrementAndInterrupt() {
 		return
 	}
 
-	if c.ram[0xFF05] == 0xFF {
+	if c.ram[TIMA] == 0xFF {
 
 		// write TMA into TIMA
-		c.ram[0xFF05] = c.ram[0xFF06]
+		c.ram[TIMA] = c.ram[TMA]
 
 		// write to IF to signal interrupt
-		c.ram[0xFF0F] |= 0x4
+		c.ram[IF] |= 0x4
 	} else {
-		c.ram[0xFF05]++
+		c.ram[TIMA]++
 	}
 }
 
