@@ -134,16 +134,26 @@ func (p *PPU) getBackgroundPixels(lineNumber byte) [160]byte {
 	return pixels
 }
 
+func max(a, b byte) byte {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (p *PPU) getWindowPosition() (byte, byte) {
-	return p.ram[0xFF4A], p.ram[0xFF4B] - 7
+	// HACK: Link's awakening writes 6 to WX, whereas topleft is 7
+	// I'm not sure what should happen in this case, so just change anything under 7 to 7
+	return p.ram[0xFF4A], max(p.ram[0xFF4B], 7) - 7
 }
 
 func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
-	pixels := [160]byte{4}
+	pixels := [160]byte{}
 	for i := 0; i < 160; i++ {
-		pixels[i] = 4
+		pixels[i] = 0xFF
 	}
+
 	if !p.LCDCBitSet(windowDisplayEnable) {
 		return pixels
 	}
@@ -355,7 +365,7 @@ func (p *PPU) performPixelTransfer(lineNumber byte) {
 	sprites, palettes, priorities := p.getSpritePixels(lineNumber)
 
 	for i := range background {
-		if window[i] < 4 {
+		if window[i] < 0xFF {
 			p.screenBuffer[int(lineNumber)*160+i] = window[i]
 		} else {
 			p.screenBuffer[int(lineNumber)*160+i] = background[i]
@@ -420,7 +430,7 @@ func getPixelColor(value byte) color.RGBA {
 	case 0:
 		return white
 	default:
-		panic("Got unexpected color")
+		panic(fmt.Sprintf("Got unexpected color: %0.8b", value))
 	}
 }
 

@@ -1,13 +1,11 @@
 package main
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/guigzzz/GoGB/backend"
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/audio"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 )
 
@@ -36,9 +34,6 @@ func (g *Game) Update() error {
 func (g *Game) Draw(screen *ebiten.Image) {
 	image := ebiten.NewImageFromImage(g.p.Image)
 	screen.DrawImage(image, &ebiten.DrawImageOptions{})
-
-	msg := fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS())
-	ebitenutil.DebugPrint(screen, msg)
 }
 
 const (
@@ -62,7 +57,7 @@ func RunGame(p *backend.PPU, c *backend.CPU) {
 
 	go player.Play()
 
-	ebiten.SetWindowSize(width*2, height*2)
+	ebiten.SetWindowSize(width*4, height*4)
 	ebiten.SetWindowTitle("GoGB")
 	ebiten.SetMaxTPS(60)
 	if err := ebiten.RunGame(game); err != nil {
