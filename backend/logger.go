@@ -27,3 +27,16 @@ func NewNullLogger() *NullLogger {
 }
 
 func (*NullLogger) Log(str string) {}
+
+type RecordingLogger struct {
+	contents string
+}
+
+func NewRecordingLogger() *RecordingLogger {
+	logger := new(RecordingLogger)
+	return logger
+}
+
+func (l *RecordingLogger) Log(str string) {
+	l.contents += str
+}

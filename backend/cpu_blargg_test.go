@@ -18,20 +18,23 @@ func apuFactory(c *CPU) APU {
 	return &NullAPU{}
 }
 
-func Init(path string) (*PPU, *CPU) {
+func Init(path string) (*PPU, *CPU, *RecordingLogger) {
 	rom, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
-	cpu := NewCPU(rom, false, NewNullLogger(), apuFactory)
+	logger := NewRecordingLogger()
+	cpu := NewCPU(rom, false, logger, apuFactory)
 	ppu := NewPPU(cpu)
-	return ppu, cpu
+	return ppu, cpu, logger
 }
+
+const EXPECTED_SUCCESS_LOG = "cpu_instrs\n\n01:ok  02:ok  03:ok  04:ok  05:ok  06:ok  07:ok  08:ok  09:ok  10:ok  11:ok  \n\nPassed all tests\n"
 
 func TestRunBlarggTests(t *testing.T) {
 
-	ppu, cpu := Init(blargg)
+	ppu, cpu, logger := Init(blargg)
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
 		ppu.RunEmulatorForAFrame()
@@ -49,6 +52,8 @@ func TestRunBlarggTests(t *testing.T) {
 		}
 	}
 
+	assert.Equal(t, EXPECTED_SUCCESS_LOG, logger.contents)
+
 	hash := hasher.Sum(nil)
 	trueHash := []byte{208, 216, 82, 235, 32, 231, 249, 27, 62, 163, 210, 223, 40, 85, 174, 11}
 
@@ -60,12 +65,16 @@ func TestRunBlarggTests(t *testing.T) {
 	}
 }
 
+const INSTR_TIMING_SUCCESS_LOG = "instr_timing\n\n\nPassed\n"
+
 func TestRunInstrTimingTest(t *testing.T) {
-	ppu, cpu := Init(timing)
+	ppu, cpu, logger := Init(timing)
 
 	for cpu.PC != 0xc8b0 && cpu.cycleCounter < 500000000 {
 		ppu.RunEmulatorForAFrame()
 	}
+
+	assert.Equal(t, INSTR_TIMING_SUCCESS_LOG, logger.contents)
 
 	// emulator state should be always exactly the same after the test passes
 	assert.Equal(t, uint16(0xc8b0), cpu.PC)
@@ -73,7 +82,7 @@ func TestRunInstrTimingTest(t *testing.T) {
 }
 
 func BenchmarkRunEmulatorForAFrame(b *testing.B) {
-	ppu, _ := Init(wario)
+	ppu, _, _ := Init(wario)
 
 	for n := 0; n < b.N; n++ {
 		ppu.RunEmulatorForAFrame()
