@@ -31,8 +31,6 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 	} else {
 		m.ram = make([]byte, 0)
 	}
-	fmt.Println("ROM size:", len(m.rom), "RAM size:", len(m.ram),
-		"Use ram:", useRam, "use battery:", useBattery)
 
 	return m
 }
