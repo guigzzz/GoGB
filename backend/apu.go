@@ -113,6 +113,8 @@ func NewAPU(c *CPU) *APUImpl {
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
 	apu.samples = make(chan []byte)
 
+	apu.emitSamples = true
+
 	return apu
 }
 
