@@ -55,9 +55,9 @@ const (
 
 var WAVE_DUTY_TABLE = [4][8]byte{
 	{0, 0, 0, 0, 0, 0, 0, 1},
-	{0, 0, 0, 0, 0, 0, 1, 1},
-	{0, 0, 0, 0, 1, 1, 1, 1},
-	{1, 1, 1, 1, 1, 1, 0, 0},
+	{1, 0, 0, 0, 0, 0, 0, 1},
+	{1, 0, 0, 0, 0, 1, 1, 1},
+	{0, 1, 1, 1, 1, 1, 1, 0},
 }
 
 var CODE_TO_DIVISOR = [8]byte{8, 16, 32, 48, 64, 80, 96, 112}
@@ -70,8 +70,8 @@ type APUImpl struct {
 	waveDutyPositionSquare1 int
 	frequencyTimerSquare1   int
 	lengthTimerSquare1      int
-	periodTimerSquare1      int
-	currentVolumeSquare1    int
+	periodTimerSquare1      byte
+	currentVolumeSquare1    byte
 	sweepEnabled            bool
 	shadowFrequency         int
 	sweepTimer              int
@@ -79,8 +79,8 @@ type APUImpl struct {
 	waveDutyPositionSquare2 int
 	frequencyTimerSquare2   int
 	lengthTimerSquare2      int
-	periodTimerSquare2      int
-	currentVolumeSquare2    int
+	periodTimerSquare2      byte
+	currentVolumeSquare2    byte
 
 	frequencyTimerWave  int
 	positionCounterWave int
@@ -89,8 +89,8 @@ type APUImpl struct {
 	frequencyTimerNoise int
 	lengthTimerNoise    int
 	lsfr                uint16
-	periodTimerNoise    int
-	currentVolumeNoise  int
+	periodTimerNoise    byte
+	currentVolumeNoise  byte
 
 	frameSequencerCounter byte
 
@@ -196,7 +196,7 @@ func (a *APUImpl) getWaveOutput() (byte, byte) {
 }
 
 func (a *APUImpl) getNoiseOutput() (byte, byte) {
-	amplitude := byte(^(a.lsfr & 1))
+	amplitude := byte(^a.lsfr & 1)
 	output := amplitude * byte(a.currentVolumeNoise)
 
 	if !a.isByteBitSet(NR52, 3) {
@@ -257,8 +257,8 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		}
 
 		if isTrigger {
-			a.periodTimerSquare1 = int(a.ram[NR12] & 0b111)
-			a.currentVolumeSquare1 = int(a.ram[NR12] >> 4)
+			a.periodTimerSquare1 = a.ram[NR12] & 0b111
+			a.currentVolumeSquare1 = a.ram[NR12] >> 4
 		}
 
 		lsb := a.ram[NR13]
@@ -324,8 +324,8 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		}
 
 		if isTrigger {
-			a.periodTimerSquare2 = int(a.ram[NR22] & 0b111)
-			a.currentVolumeSquare2 = int(a.ram[NR22] >> 4)
+			a.periodTimerSquare2 = a.ram[NR22] & 0b111
+			a.currentVolumeSquare2 = a.ram[NR22] >> 4
 		}
 	case NR30:
 		dacDisabled := value&0x80 == 0
@@ -410,8 +410,12 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 		}
 
 		if isTrigger {
-			a.periodTimerNoise = int(a.ram[NR42] & 0b111)
-			a.currentVolumeNoise = int(a.ram[NR42] >> 4)
+			a.periodTimerNoise = a.ram[NR42] & 0b111
+			a.currentVolumeNoise = a.ram[NR42] >> 4
+		}
+
+		if isTrigger {
+			a.lsfr = 0x7FFF
 		}
 	}
 }
@@ -515,7 +519,7 @@ func (a *APUImpl) updateVolumeEnvelope() {
 		}
 
 		if a.periodTimerSquare1 == 0 {
-			a.periodTimerSquare1 = int(a.ram[NR12] & 0b111)
+			a.periodTimerSquare1 = a.ram[NR12] & 0b111
 
 			isAdd := a.ram[NR12]&0x8 > 0
 			if isAdd && a.currentVolumeSquare1 < 0xF {
@@ -532,7 +536,7 @@ func (a *APUImpl) updateVolumeEnvelope() {
 		}
 
 		if a.periodTimerSquare2 == 0 {
-			a.periodTimerSquare2 = int(a.ram[NR22] & 0b111)
+			a.periodTimerSquare2 = a.ram[NR22] & 0b111
 
 			isAdd := a.ram[NR12]&0x8 > 0
 			if isAdd && a.currentVolumeSquare2 < 0xF {
@@ -549,7 +553,7 @@ func (a *APUImpl) updateVolumeEnvelope() {
 		}
 
 		if a.periodTimerNoise == 0 {
-			a.periodTimerNoise = int(a.ram[NR42] & 0b111)
+			a.periodTimerNoise = a.ram[NR42] & 0b111
 
 			isAdd := a.ram[NR12]&0x8 > 0
 			if isAdd && a.currentVolumeNoise < 0xF {
@@ -588,41 +592,43 @@ func (a *APUImpl) updateState() {
 
 	a.updateFrameSequencer()
 
-	a.frequencyTimerSquare1--
-	if a.frequencyTimerSquare1 <= 0 {
+	if a.frequencyTimerSquare1 == 0 {
 		lsb := a.ram[NR13]
 		msb := a.ram[NR14] & 0b111
 		frequency := uint16(msb)<<8 | uint16(lsb)
-		a.frequencyTimerSquare1 = int((2048-frequency)*4) + a.frequencyTimerSquare1
+		a.frequencyTimerSquare1 = int((2048 - frequency) * 4)
 		a.waveDutyPositionSquare1 = (a.waveDutyPositionSquare1 + 1) % 8
+	} else {
+		a.frequencyTimerSquare1--
 	}
 
-	a.frequencyTimerSquare2--
-	if a.frequencyTimerSquare2 <= 0 {
+	if a.frequencyTimerSquare2 == 0 {
 		lsb := a.ram[NR23]
 		msb := a.ram[NR24] & 0b111
 		frequency := uint16(msb)<<8 | uint16(lsb)
-		a.frequencyTimerSquare2 = int((2048-frequency)*4) + a.frequencyTimerSquare2
+		a.frequencyTimerSquare2 = int((2048 - frequency) * 4)
 		a.waveDutyPositionSquare2 = (a.waveDutyPositionSquare2 + 1) % 8
+	} else {
+		a.frequencyTimerSquare2--
 	}
 
-	a.frequencyTimerWave--
-	if a.frequencyTimerWave <= 0 {
+	if a.frequencyTimerWave == 0 {
 		lsb := a.ram[NR33]
 		msb := a.ram[NR34] & 0b111
 		frequency := uint16(msb)<<8 | uint16(lsb)
 		a.frequencyTimerWave = int((2048 - frequency) * 2)
-		a.positionCounterWave = (a.positionCounterWave + 1) % 64
+		a.positionCounterWave = (a.positionCounterWave + 1) % 32
+	} else {
+		a.frequencyTimerWave--
 	}
 
-	a.frequencyTimerNoise--
-	if a.frequencyTimerNoise <= 0 {
+	if a.frequencyTimerNoise == 0 {
 		shift := a.ram[NR43] & 0b1111_0000 >> 4
 		divisorCode := a.ram[NR43] & 0b111
 		divisor := CODE_TO_DIVISOR[divisorCode]
 		a.frequencyTimerNoise = int(divisor) << int(shift)
 
-		xor := (a.lsfr & 1) ^ (a.lsfr & 2 >> 1)
+		xor := (a.lsfr & 1) ^ ((a.lsfr & 2) >> 1)
 		newLsfr := (a.lsfr >> 1) | (xor << 14)
 
 		width := a.isByteBitSet(NR43, 3)
@@ -630,6 +636,8 @@ func (a *APUImpl) updateState() {
 			newLsfr = newLsfr&0b1111_1111_1011_1111 | (xor << 6)
 		}
 		a.lsfr = newLsfr & 0x7FFF
+	} else {
+		a.frequencyTimerNoise--
 	}
 }
 
