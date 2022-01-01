@@ -69,3 +69,49 @@ func TestUpdateNoiseFrequencyTimerWidth(t *testing.T) {
 
 	assert.Equal(t, uint16(0x3FBF), apu.lsfr)
 }
+
+func TestGetWaveOutput(t *testing.T) {
+	apu := InitApu()
+
+	apu.positionCounterWave = 0
+
+	apu.ram[NR32] = 0b0010_0000
+	apu.ram[0xFF30] = 0xC0
+
+	apu.ram[NR52] = 0xF
+	apu.ram[NR51] = 0xF // only enable right channel
+
+	left, right := apu.getWaveOutput()
+	assert.Equal(t, byte(0), left)
+	assert.Equal(t, byte(0xC), right)
+}
+
+func TestUpdateWaveFrequencyTimerTick(t *testing.T) {
+
+	apu := InitApu()
+
+	apu.ram[NR33] = 0x11
+	apu.ram[NR34] = 0x1
+	apu.positionCounterWave = 31
+
+	apu.updateState()
+
+	assert.Equal(t, 3550, apu.frequencyTimerWave)
+	assert.Equal(t, 0, apu.positionCounterWave)
+}
+
+func TestUpdateWaveFrequencyTimerNoTick(t *testing.T) {
+
+	apu := InitApu()
+
+	apu.ram[NR33] = 0x11
+	apu.ram[NR34] = 0x1
+
+	apu.frequencyTimerWave = 1
+	apu.positionCounterWave = 31
+
+	apu.updateState()
+
+	assert.Equal(t, 0, apu.frequencyTimerWave)
+	assert.Equal(t, 31, apu.positionCounterWave)
+}
