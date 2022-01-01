@@ -300,6 +300,12 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 			} else {
 				s.tileIndex &= 0xFE
 			}
+
+			// for 16 high sprites, top becomes bottom and bottom becomes top
+			// so flip the tileIndex bit in that case
+			if s.yFlipped {
+				s.tileIndex ^= 1
+			}
 		}
 
 		lineDataIndex := uint(s.tileIndex)*16 + 2*uint(rowInTile)
