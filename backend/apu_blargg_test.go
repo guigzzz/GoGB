@@ -30,16 +30,7 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 				panic(err)
 			}
 
-			cpu := NewCPU(rom, false, NewNullLogger(), nil)
-
-			// setup reading so that the APU doesn't block
-			buf := make([]byte, 100000)
-			go (func() {
-				for {
-					cpu.apu.ToReadCloser().Read(buf)
-				}
-			})()
-
+			cpu := NewCPU(rom, false, NewNullLogger(), RealApuFactory)
 			ppu := NewPPU(cpu)
 
 			for cpu.PC != r.successProgramCounter && cpu.cycleCounter < 50_000_000 {

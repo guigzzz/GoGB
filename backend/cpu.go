@@ -100,17 +100,12 @@ func (c *CPU) RunSync(allowance int) {
 
 		c.CheckAndHandleInterrupts()
 
-		var pcIncrement int
-		var cycleIncrement int
 		if c.haltMode == 0 {
-			pcIncrement, cycleIncrement = c.DecodeAndExecuteNext()
+			pcIncrement, cycleIncrement := c.DecodeAndExecuteNext()
 			c.PC += uint16(pcIncrement)
-		}
-
-		if c.haltMode > 0 {
-			increment = 4
-		} else {
 			increment = uint64(cycleIncrement)
+		} else {
+			increment = 4
 		}
 
 		for i := 0; i < int(increment); i++ {

@@ -96,6 +96,9 @@ type APUImpl struct {
 
 	sampleBuf []byte
 	samples   chan []byte
+
+	// for testing
+	emitSamples bool
 }
 
 const (
@@ -659,8 +662,10 @@ func (a *APUImpl) StepAPU() {
 	left := leftVolume * (uint16(leftSquare1Output) + uint16(leftSquare2Output) + uint16(leftWaveOutput) + uint16(leftNoiseOutput))
 	right := rightVolume * (uint16(rightSquare1Output) + uint16(rightSquare2Output) + uint16(rightWaveOutput) + uint16(rightNoiseOutput))
 
-	a.emitSample(left)
-	a.emitSample(right)
+	if a.emitSamples {
+		a.emitSample(left)
+		a.emitSample(right)
+	}
 }
 
 func (a *APUImpl) Read(p []byte) (n int, err error) {

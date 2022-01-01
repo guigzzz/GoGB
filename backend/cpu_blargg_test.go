@@ -14,19 +14,37 @@ const (
 	wario  = "../rom/wario_walking_demo.gb"
 )
 
-func apuFactory(c *CPU) APU {
+func NullApuFactory(c *CPU) APU {
 	return &NullAPU{}
 }
 
-func Init(path string) (*PPU, *CPU, *RecordingLogger) {
+func RealApuFactory(c *CPU) APU {
+	a := NewAPU(c)
+
+	// do not emit samples as nothing consumes them
+	a.emitSamples = false
+
+	return a
+}
+
+func Init(path string, useRealApu bool) (*PPU, *CPU, *RecordingLogger) {
 	rom, err := ioutil.ReadFile(path)
 	if err != nil {
 		panic(err)
 	}
 
 	logger := NewRecordingLogger()
-	cpu := NewCPU(rom, false, logger, apuFactory)
+
+	var factory ApuFactory = nil
+	if !useRealApu {
+		factory = NullApuFactory
+	} else {
+		factory = RealApuFactory
+	}
+
+	cpu := NewCPU(rom, false, logger, factory)
 	ppu := NewPPU(cpu)
+
 	return ppu, cpu, logger
 }
 
@@ -34,7 +52,7 @@ const EXPECTED_SUCCESS_LOG = "cpu_instrs\n\n01:ok  02:ok  03:ok  04:ok  05:ok  0
 
 func TestRunBlarggTests(t *testing.T) {
 
-	ppu, cpu, logger := Init(blargg)
+	ppu, cpu, logger := Init(blargg, false)
 
 	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
 		ppu.RunEmulatorForAFrame()
@@ -68,7 +86,7 @@ func TestRunBlarggTests(t *testing.T) {
 const INSTR_TIMING_SUCCESS_LOG = "instr_timing\n\n\nPassed\n"
 
 func TestRunInstrTimingTest(t *testing.T) {
-	ppu, cpu, logger := Init(timing)
+	ppu, cpu, logger := Init(timing, false)
 
 	for cpu.PC != 0xc8b0 && cpu.cycleCounter < 500000000 {
 		ppu.RunEmulatorForAFrame()
@@ -82,7 +100,7 @@ func TestRunInstrTimingTest(t *testing.T) {
 }
 
 func BenchmarkRunEmulatorForAFrame(b *testing.B) {
-	ppu, _, _ := Init(wario)
+	ppu, _, _ := Init(wario, true)
 
 	for n := 0; n < b.N; n++ {
 		ppu.RunEmulatorForAFrame()
