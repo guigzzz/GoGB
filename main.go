@@ -32,12 +32,23 @@ func main() {
 		os.Exit(0)
 	}
 
-	rom, err := ioutil.ReadFile(flag.Arg(0))
-	if err != nil {
-		panic(err)
+	romPath := flag.Arg(0)
+
+	var cpu *backend.CPU
+	var ppu *backend.PPU
+	if backend.SaveExistsForRom(romPath) {
+		ppu, cpu = backend.LoadSave(romPath)
+	} else {
+		rom, err := ioutil.ReadFile(romPath)
+		if err != nil {
+			panic(err)
+		}
+
+		cpu = backend.NewCPU(rom, *debug, nil, nil)
+		ppu = backend.NewPPU(cpu)
 	}
 
-	cpu := backend.NewCPU(rom, *debug, nil, nil)
-	ppu := backend.NewPPU(cpu)
 	RunGame(ppu, cpu)
+
+	defer backend.DumpEmulatorState(romPath, ppu, cpu)
 }

@@ -3,7 +3,7 @@ package backend
 import "fmt"
 
 type MBC0 struct {
-	rom []byte
+	Rom []byte
 }
 
 func NewMBC0(rom []byte) *MBC0 {
@@ -13,7 +13,7 @@ func NewMBC0(rom []byte) *MBC0 {
 		panic("Cartridge has no MBC but the rom is larger than 32KB, this is inconsistent")
 	}
 
-	m.rom = rom
+	m.Rom = rom
 
 	return m
 }
@@ -30,7 +30,7 @@ func (m *MBC0) DelegateWriteToMBC(address uint16) bool {
 
 func (m *MBC0) ReadMemory(address uint16) byte {
 	if 0x0000 <= address && address < 0x8000 {
-		return m.rom[address]
+		return m.Rom[address]
 	} else if 0xA000 <= address && address < 0xC000 {
 		return 0xFF
 	}
