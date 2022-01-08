@@ -33,16 +33,6 @@ func NewMBC3(rom []byte, useRam, useTimer, useBattery bool) *MBC3 {
 	return m
 }
 
-func (m *MBC3) DelegateReadToMBC(address uint16) bool {
-	return 0x0000 <= address && address < 0x8000 ||
-		0xA000 <= address && address < 0xC000
-}
-
-func (m *MBC3) DelegateWriteToMBC(address uint16) bool {
-	return 0x0000 <= address && address < 0x8000 ||
-		0xA000 <= address && address < 0xC000
-}
-
 func (m *MBC3) ReadMemory(address uint16) byte {
 
 	if 0x0000 <= address && address < 0x4000 {

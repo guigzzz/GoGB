@@ -9,9 +9,19 @@ var audioRegOrLookup = [32]byte{
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // unused regs
 }
 
+func delegateReadToMBC(address uint16) bool {
+	return 0x0000 <= address && address < 0x8000 ||
+		0xA000 <= address && address < 0xC000
+}
+
+func delegateWriteToMBC(address uint16) bool {
+	return 0x0000 <= address && address < 0x8000 ||
+		0xA000 <= address && address < 0xC000
+}
+
 func (c *CPU) readMemory(address uint16) byte {
 
-	if c.mbc.DelegateReadToMBC(address) {
+	if delegateReadToMBC(address) {
 
 		return c.mbc.ReadMemory(address)
 
@@ -27,7 +37,7 @@ func (c *CPU) readMemory(address uint16) byte {
 
 func (c *CPU) writeMemory(address uint16, value byte) {
 
-	if c.mbc.DelegateWriteToMBC(address) {
+	if delegateWriteToMBC(address) {
 
 		c.mbc.WriteMemory(address, value)
 

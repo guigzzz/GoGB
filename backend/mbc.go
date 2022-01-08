@@ -6,8 +6,6 @@ import "fmt"
 type MBC interface {
 	ReadMemory(uint16) byte
 	WriteMemory(uint16, byte)
-	DelegateReadToMBC(uint16) bool
-	DelegateWriteToMBC(uint16) bool
 }
 
 func getROMSize(sizeIndex byte) int {
