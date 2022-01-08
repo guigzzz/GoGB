@@ -81,15 +81,21 @@ func getMemoryControllerFrom(rom []byte) MBC {
 		return NewMBC3(rom, true, false, true)
 
 	case 0x19:
-		panic("MBC5 unimplemented")
+		return NewMBC5(rom, false, false)
 	case 0x1A:
-		panic("MBC5 + RAM unimplemented")
+		return NewMBC5(rom, true, false)
 	case 0x1B:
-		panic("MBC5 + Rumble unimplemented")
+		return NewMBC5(rom, true, true)
 	case 0x1C:
-		panic("MBC5 + RAM + Rumble uimplemented")
+		fmt.Println("WARNING: MBC5 with rumble requested")
+		return NewMBC5(rom, false, false)
 	case 0x1D:
-		panic("MBC5 + RAM + Battery + Rumble unimplemented")
+		fmt.Println("WARNING: MBC5 with rumble requested")
+		// what is Battery-backed rumble ??
+		return NewMBC5(rom, false, false)
+	case 0x1E:
+		fmt.Println("WARNING: MBC5 with rumble requested")
+		return NewMBC5(rom, true, true)
 
 	case 0x20:
 		panic("MBC6 + RAM + Battery unimplemented")
