@@ -16,6 +16,8 @@ type PPU struct {
 	cpu          *CPU
 	irq          bool
 	sprites      Sprites
+
+	windowCounter int
 }
 
 // NewPPU creates a new PPU object
@@ -167,7 +169,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	tileData, interpretIndexAsSigned := p.getWindowTileData()
 
 	rowInTile := (lineNumber - yPos) % 8
-	tileRow := (lineNumber - yPos) / 8
+	tileRow := p.windowCounter / 8
 
 	for i := 0; i < 160-int(xPos); i++ {
 
@@ -202,6 +204,8 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
 		pixels[int(xPos)+i] = mapColorToPalette(p.getBGPalette(), colorCode)
 	}
+
+	p.windowCounter++
 
 	return pixels
 
@@ -386,6 +390,8 @@ func (p *PPU) RunEmulatorForAFrame() {
 		return
 	}
 
+	p.windowCounter = 0
+
 	for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
 		p.writeLY(lineNumber)
 
@@ -415,10 +421,10 @@ func (p *PPU) RunEmulatorForAFrame() {
 }
 
 func getPixelColor(value byte) color.RGBA {
-	white := color.RGBA{255, 255, 255, 255}
-	lightgray := color.RGBA{192, 192, 192, 255}
-	gray := color.RGBA{128, 128, 128, 255}
-	black := color.RGBA{0, 0, 0, 255}
+	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
+	lightgray := color.RGBA{0xAA, 0xAA, 0xAA, 0xFF}
+	gray := color.RGBA{0x55, 0x55, 0x55, 0xFF}
+	black := color.RGBA{0, 0, 0, 0xFF}
 
 	switch value {
 	case 3:

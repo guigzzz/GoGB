@@ -7,3 +7,4 @@ emulator.prof
 *.txt
 rom/dmg_sound
 rom/cpu_instrs
+out/
