@@ -12,22 +12,8 @@ import (
 )
 
 const romPath = "../rom/dmg-acid2.gb"
-const out = "out/dmg-acid.png"
-const ref = "ref/dmg-acid.png"
-
-func createOutputFile() *os.File {
-	_, err := os.Stat(out)
-	if os.IsNotExist(err) {
-		os.Mkdir("out", 0777)
-	}
-
-	f, err := os.Create(out)
-	if err != nil {
-		panic(err)
-	}
-
-	return f
-}
+const outDmgAcid = "out/dmg-acid.png"
+const refDmgAcid = "ref/dmg-acid.png"
 
 func imageToRGBA(src image.Image) *image.RGBA {
 
@@ -43,8 +29,8 @@ func imageToRGBA(src image.Image) *image.RGBA {
 	return dst
 }
 
-func getReferenceImage() *image.RGBA {
-	f, err := os.Open(ref)
+func getImage(path string) *image.RGBA {
+	f, err := os.Open(path)
 	if err != nil {
 		panic(err)
 	}
@@ -73,11 +59,8 @@ func TestRunDmgAcid2(t *testing.T) {
 		ppu.RunEmulatorForAFrame()
 	}
 
-	f := createOutputFile()
-	defer f.Close()
+	ppu.dumpScreenToPng(outDmgAcid)
 
-	png.Encode(f, ppu.Image)
-
-	ref := getReferenceImage()
+	ref := getImage(refDmgAcid)
 	assert.Equal(t, ppu.Image.Pix, ref.Pix)
 }

@@ -9,6 +9,9 @@ type MBC5 struct {
 
 	rom []byte
 	ram []byte
+
+	numRomBanks byte
+	numRamBanks byte
 }
 
 func NewMBC5(rom []byte, useRam, useBattery bool) *MBC5 {
@@ -24,7 +27,11 @@ func NewMBC5(rom []byte, useRam, useBattery bool) *MBC5 {
 	}
 	m.rom = rom
 
+	m.numRomBanks = byte(headerSize / 0x4000)
+
 	if useRam {
+		ramSize := getRAMSize(rom[0x0149])
+		m.numRamBanks = byte(ramSize / 0x2000)
 		m.ram = make([]byte, getRAMSize(rom[0x0149]))
 	}
 
@@ -68,13 +75,17 @@ func (m *MBC5) WriteMemory(address uint16, value byte) {
 
 	} else if 0x2000 <= address && address < 0x3000 {
 		m.selectedROMBank = m.selectedROMBank&0xFF00 | uint16(value)
+		m.selectedROMBank %= uint16(m.numRomBanks)
 	} else if 0x3000 <= address && address < 0x4000 {
 		m.selectedROMBank = m.selectedROMBank&0xFF | uint16(value)<<8
+		m.selectedROMBank %= uint16(m.numRomBanks)
 	} else if 0x4000 <= address && address < 0x6000 {
 
-		// either rom bank to use
+		// either ram bank to use
 		// or RTC register to access
-		m.selectedRAMBank = value
+		if m.ramEnabled {
+			m.selectedRAMBank = value % m.numRamBanks
+		}
 
 	} else if 0x6000 <= address && address < 0x8000 {
 		// latch clock data

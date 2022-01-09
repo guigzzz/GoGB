@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
+	"os"
+	"path/filepath"
 	"sort"
 )
 
@@ -448,4 +451,27 @@ func (p *PPU) writeBufferToImage() {
 			p.Image.SetRGBA(j, i, getPixelColor(p.screenBuffer[i*160+j]))
 		}
 	}
+}
+
+func createOutputFile(path string) *os.File {
+
+	folder, _ := filepath.Split(path)
+	_, err := os.Stat(folder)
+	if os.IsNotExist(err) {
+		os.MkdirAll(folder, 0777)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+
+	return f
+}
+
+func (p *PPU) dumpScreenToPng(path string) {
+	f := createOutputFile(path)
+	defer f.Close()
+
+	png.Encode(f, p.Image)
 }

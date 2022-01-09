@@ -11,6 +11,9 @@ type MBC1 struct {
 	ram []byte
 
 	ROMMode bool
+
+	numRomBanks byte
+	numRamBanks byte
 }
 
 func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
@@ -26,10 +29,12 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 	}
 	m.rom = rom
 
+	m.numRomBanks = byte(headerSize / 0x4000)
+
 	if useRam {
-		m.ram = make([]byte, getRAMSize(rom[0x0149]))
-	} else {
-		m.ram = make([]byte, 0)
+		ramSize := getRAMSize(rom[0x0149])
+		m.numRamBanks = byte(ramSize / 0x2000)
+		m.ram = make([]byte, ramSize)
 	}
 
 	return m
@@ -48,7 +53,7 @@ func (m *MBC1) ReadMemory(address uint16) byte {
 
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled && len(m.ram) > 0 {
+		if m.ramEnabled {
 			offset := uint32(address) - 0xA000
 			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
 			return m.ram[bankAddress]
@@ -73,21 +78,29 @@ func (m *MBC1) WriteMemory(address uint16, value byte) {
 		}
 		m.selectedROMBank &= 0x60
 		m.selectedROMBank |= value
+
+		m.selectedROMBank %= m.numRomBanks
+
 	} else if 0x4000 <= address && address < 0x6000 {
-		value &= 0x60
+		value &= 0b11
 		if m.ROMMode {
 			// in ROM mode
 			m.selectedROMBank &= 0x1F
-			m.selectedROMBank |= value
+			m.selectedROMBank |= value << 5
 
 			// in ROM mode only RAM bank 0 can be used
 			m.selectedRAMBank = 0
 		} else {
 			// in RAM mode
-			m.selectedRAMBank = value >> 5
+			m.selectedRAMBank = value
 
 			// in RAM mode, only ROM banks 0x01-0x1F can be used
 			m.selectedROMBank &= 0x1F
+		}
+
+		m.selectedROMBank %= m.numRomBanks
+		if m.ramEnabled {
+			m.selectedRAMBank %= m.numRamBanks
 		}
 
 	} else if 0x6000 <= address && address < 0x8000 {
@@ -96,7 +109,7 @@ func (m *MBC1) WriteMemory(address uint16, value byte) {
 
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled && len(m.ram) > 0 {
+		if m.ramEnabled {
 			offset := uint32(address) - 0xA000
 			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
 			m.ram[bankAddress] = value
