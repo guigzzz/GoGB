@@ -41,13 +41,15 @@ const (
 	windowDisplayEnable               // (0=Off, 1=On)
 	windowTileMapDisplaySelect        // (0=9800-9BFF, 1=9C00-9FFF)
 	lcdDisplayEnable                  // (0=Off, 1=On)
+
+	LCDC = 0xFF40
 )
 
 func (p *PPU) LCDCBitSet(bitnum uint) bool {
 	if bitnum > 7 {
 		panic(fmt.Sprintf("Got unexpected bit number %d higher than 7 (max for byte)", bitnum))
 	}
-	return p.ram[0xFF40]&(1<<bitnum) > 0
+	return p.ram[LCDC]&(1<<bitnum) > 0
 }
 
 func (p *PPU) getBackgroundTileData() ([]byte, bool) {
