@@ -37,6 +37,8 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 		m.ram = make([]byte, ramSize)
 	}
 
+	m.ROMMode = true
+
 	return m
 }
 
@@ -69,7 +71,7 @@ func (m *MBC1) WriteMemory(address uint16, value byte) {
 
 	if 0x0000 <= address && address < 0x2000 {
 
-		m.ramEnabled = value&0xA == 0xA
+		m.ramEnabled = value&0xF == 0xA
 
 	} else if 0x2000 <= address && address < 0x4000 {
 		value &= 0x1F // mask off lower 5 bits

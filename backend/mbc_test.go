@@ -17,8 +17,8 @@ func TestRunMbcTests(t *testing.T) {
 	roms := []string{
 		"mbc1/bits_bank1.gb",
 		"mbc1/bits_bank2.gb",
-		// "mbc1/bits_mode.gb",
-		// "mbc1/bits_ramg.gb",
+		"mbc1/bits_mode.gb",
+		"mbc1/bits_ramg.gb",
 		// "mbc1/multicart_rom_8Mb.gb",
 		"mbc1/ram_64kb.gb",
 		"mbc1/ram_256kb.gb",
@@ -52,7 +52,7 @@ func TestRunMbcTests(t *testing.T) {
 			cpu := NewCPU(rom, false, NewNullLogger(), NullApuFactory)
 			ppu := NewPPU(cpu)
 
-			for i := 0; i < 200; i++ {
+			for i := 0; i < 500; i++ {
 				ppu.RunEmulatorForAFrame()
 			}
 
