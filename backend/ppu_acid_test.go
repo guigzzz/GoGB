@@ -59,8 +59,8 @@ func TestRunDmgAcid2(t *testing.T) {
 		ppu.RunEmulatorForAFrame()
 	}
 
-	ppu.dumpScreenToPng(outDmgAcid)
-
 	ref := getImage(refDmgAcid)
-	assert.Equal(t, ppu.Image.Pix, ref.Pix)
+	if !assert.Equal(t, ppu.Image.Pix, ref.Pix) {
+		ppu.dumpScreenToPng(outDmgAcid)
+	}
 }
