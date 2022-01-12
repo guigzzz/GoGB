@@ -45,6 +45,8 @@ func Init(path string, useRealApu bool) (*PPU, *CPU, *RecordingLogger) {
 	cpu := NewCPU(rom, false, logger, factory)
 	ppu := NewPPU(cpu)
 
+	ppu.ram[LCDC] |= 1 << lcdDisplayEnable
+
 	return ppu, cpu, logger
 }
 
@@ -101,6 +103,14 @@ func TestRunInstrTimingTest(t *testing.T) {
 
 func BenchmarkRunEmulatorForAFrame(b *testing.B) {
 	ppu, _, _ := Init(wario, true)
+
+	for n := 0; n < b.N; n++ {
+		ppu.RunEmulatorForAFrame()
+	}
+}
+
+func BenchmarkRunEmulatorForAFrameNoApu(b *testing.B) {
+	ppu, _, _ := Init(wario, false)
 
 	for n := 0; n < b.N; n++ {
 		ppu.RunEmulatorForAFrame()

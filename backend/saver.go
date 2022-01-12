@@ -2,7 +2,9 @@ package backend
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
 	"path/filepath"
@@ -14,7 +16,7 @@ const JSON = ".json"
 func setupSaveDirectory() {
 
 	_, err := os.Stat(SAVES)
-	if os.IsNotExist(err) {
+	if errors.Is(err, fs.ErrNotExist) {
 		os.Mkdir(SAVES, os.ModePerm)
 	}
 
@@ -26,16 +28,16 @@ func makeSavePathForRomPath(romPath string) string {
 }
 
 func SaveExistsForRom(romPath string) bool {
-	// save := filepath.FromSlash(makeSavePathForRomPath(romPath))
-	// fmt.Println("Trying load save file: " + save)
-	// _, err := os.Stat(save)
-	// if os.IsExist(err) {
-	// 	fmt.Println("Found save file!")
-	// 	return true
-	// }
+	save := filepath.FromSlash(makeSavePathForRomPath(romPath))
 
-	// return false
-	return true
+	_, err := os.Stat(save)
+	if err == nil {
+		fmt.Println("Found save file!")
+		return true
+	}
+
+	fmt.Println("Save not found.")
+	return false
 }
 
 func LoadSave(romPath string) (p *PPU, c *CPU) {
@@ -64,9 +66,6 @@ func LoadSave(romPath string) (p *PPU, c *CPU) {
 	c.cycleCounter = cpuState.CycleCounter
 
 	return NewPPU(c), c
-}
-
-type MBCState struct {
 }
 
 type CPUState struct {

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/png"
+	"os"
+	"path/filepath"
 	"sort"
 )
 
@@ -16,6 +19,8 @@ type PPU struct {
 	cpu          *CPU
 	irq          bool
 	sprites      Sprites
+
+	windowCounter int
 }
 
 // NewPPU creates a new PPU object
@@ -39,13 +44,15 @@ const (
 	windowDisplayEnable               // (0=Off, 1=On)
 	windowTileMapDisplaySelect        // (0=9800-9BFF, 1=9C00-9FFF)
 	lcdDisplayEnable                  // (0=Off, 1=On)
+
+	LCDC = 0xFF40
 )
 
 func (p *PPU) LCDCBitSet(bitnum uint) bool {
 	if bitnum > 7 {
 		panic(fmt.Sprintf("Got unexpected bit number %d higher than 7 (max for byte)", bitnum))
 	}
-	return p.ram[0xFF40]&(1<<bitnum) > 0
+	return p.ram[LCDC]&(1<<bitnum) > 0
 }
 
 func (p *PPU) getBackgroundTileData() ([]byte, bool) {
@@ -167,7 +174,7 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 	tileData, interpretIndexAsSigned := p.getWindowTileData()
 
 	rowInTile := (lineNumber - yPos) % 8
-	tileRow := (lineNumber - yPos) / 8
+	tileRow := p.windowCounter / 8
 
 	for i := 0; i < 160-int(xPos); i++ {
 
@@ -202,6 +209,8 @@ func (p *PPU) getWindowPixels(lineNumber byte) [160]byte {
 
 		pixels[int(xPos)+i] = mapColorToPalette(p.getBGPalette(), colorCode)
 	}
+
+	p.windowCounter++
 
 	return pixels
 
@@ -386,6 +395,8 @@ func (p *PPU) RunEmulatorForAFrame() {
 		return
 	}
 
+	p.windowCounter = 0
+
 	for lineNumber := byte(0); lineNumber < 144; lineNumber++ {
 		p.writeLY(lineNumber)
 
@@ -415,10 +426,10 @@ func (p *PPU) RunEmulatorForAFrame() {
 }
 
 func getPixelColor(value byte) color.RGBA {
-	white := color.RGBA{255, 255, 255, 255}
-	lightgray := color.RGBA{192, 192, 192, 255}
-	gray := color.RGBA{128, 128, 128, 255}
-	black := color.RGBA{0, 0, 0, 255}
+	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
+	lightgray := color.RGBA{0xAA, 0xAA, 0xAA, 0xFF}
+	gray := color.RGBA{0x55, 0x55, 0x55, 0xFF}
+	black := color.RGBA{0, 0, 0, 0xFF}
 
 	switch value {
 	case 3:
@@ -440,4 +451,27 @@ func (p *PPU) writeBufferToImage() {
 			p.Image.SetRGBA(j, i, getPixelColor(p.screenBuffer[i*160+j]))
 		}
 	}
+}
+
+func createOutputFile(path string) *os.File {
+
+	folder, _ := filepath.Split(path)
+	_, err := os.Stat(folder)
+	if os.IsNotExist(err) {
+		os.MkdirAll(folder, 0777)
+	}
+
+	f, err := os.Create(path)
+	if err != nil {
+		panic(err)
+	}
+
+	return f
+}
+
+func (p *PPU) dumpScreenToPng(path string) {
+	f := createOutputFile(path)
+	defer f.Close()
+
+	png.Encode(f, p.Image)
 }
