@@ -73,12 +73,8 @@ func makeRom() []byte {
 	return rom
 }
 
-func TestMarshalMbc0(t *testing.T) {
-
-	rom := make([]byte, 32768)
-	mbc := NewMBC0(rom)
-
-	wrapped := MbcWrapper{mbc}
+func runTest(t *testing.T, m MBC) {
+	wrapped := MbcWrapper{m}
 
 	d, err := json.Marshal(wrapped)
 	if err != nil {
@@ -90,7 +86,14 @@ func TestMarshalMbc0(t *testing.T) {
 		t.Error(e)
 	}
 
-	assert.Equal(t, out.mbc, mbc)
+	assert.Equal(t, out.mbc, m)
+}
+
+func TestMarshalMbc0(t *testing.T) {
+	rom := make([]byte, 32768)
+	mbc := NewMBC0(rom)
+
+	runTest(t, mbc)
 }
 
 func TestMarshalMbc1(t *testing.T) {
@@ -100,19 +103,7 @@ func TestMarshalMbc1(t *testing.T) {
 	mbc.SelectedRAMBank = 3
 	mbc.SelectedROMBank = 4
 
-	wrapped := MbcWrapper{mbc}
-
-	d, err := json.Marshal(wrapped)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var out MbcWrapper
-	if e := json.Unmarshal(d, &out); e != nil {
-		t.Error(e)
-	}
-
-	assert.Equal(t, out.mbc, mbc)
+	runTest(t, mbc)
 }
 
 func TestMarshalMbc3(t *testing.T) {
@@ -121,19 +112,7 @@ func TestMarshalMbc3(t *testing.T) {
 	mbc.SelectedROMBank = 4
 	mbc.RamEnabled = true
 
-	wrapped := MbcWrapper{mbc}
-
-	d, err := json.Marshal(wrapped)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var out MbcWrapper
-	if e := json.Unmarshal(d, &out); e != nil {
-		t.Error(e)
-	}
-
-	assert.Equal(t, out.mbc, mbc)
+	runTest(t, mbc)
 }
 
 func TestMarshalMbc5(t *testing.T) {
@@ -144,17 +123,5 @@ func TestMarshalMbc5(t *testing.T) {
 	mbc.SelectedROMBank = 4
 	mbc.RamEnabled = true
 
-	wrapped := MbcWrapper{mbc}
-
-	d, err := json.Marshal(wrapped)
-	if err != nil {
-		t.Error(err)
-	}
-
-	var out MbcWrapper
-	if e := json.Unmarshal(d, &out); e != nil {
-		t.Error(e)
-	}
-
-	assert.Equal(t, out.mbc, mbc)
+	runTest(t, mbc)
 }
