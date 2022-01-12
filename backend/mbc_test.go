@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"encoding/json"
 	"io/ioutil"
 	"path"
 	"path/filepath"
@@ -63,4 +64,97 @@ func TestRunMbcTests(t *testing.T) {
 		})
 	}
 
+}
+
+func makeRom() []byte {
+	rom := make([]byte, 65536)
+	rom[0x148] = 1
+	rom[0x149] = 1
+	return rom
+}
+
+func TestMarshalMbc0(t *testing.T) {
+
+	rom := make([]byte, 32768)
+	mbc := NewMBC0(rom)
+
+	wrapped := MbcWrapper{mbc}
+
+	d, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var out MbcWrapper
+	if e := json.Unmarshal(d, &out); e != nil {
+		t.Error(e)
+	}
+
+	assert.Equal(t, out.mbc, mbc)
+}
+
+func TestMarshalMbc1(t *testing.T) {
+	mbc := NewMBC1(makeRom(), true, false)
+	mbc.NumRomBanks = 1
+	mbc.NumRamBanks = 2
+	mbc.SelectedRAMBank = 3
+	mbc.SelectedROMBank = 4
+
+	wrapped := MbcWrapper{mbc}
+
+	d, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var out MbcWrapper
+	if e := json.Unmarshal(d, &out); e != nil {
+		t.Error(e)
+	}
+
+	assert.Equal(t, out.mbc, mbc)
+}
+
+func TestMarshalMbc3(t *testing.T) {
+	mbc := NewMBC3(makeRom(), true, false, false)
+	mbc.SelectedRAMBank = 3
+	mbc.SelectedROMBank = 4
+	mbc.RamEnabled = true
+
+	wrapped := MbcWrapper{mbc}
+
+	d, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var out MbcWrapper
+	if e := json.Unmarshal(d, &out); e != nil {
+		t.Error(e)
+	}
+
+	assert.Equal(t, out.mbc, mbc)
+}
+
+func TestMarshalMbc5(t *testing.T) {
+	mbc := NewMBC5(makeRom(), true, false)
+	mbc.NumRomBanks = 1
+	mbc.NumRamBanks = 2
+	mbc.SelectedRAMBank = 3
+	mbc.SelectedROMBank = 4
+	mbc.RamEnabled = true
+
+	wrapped := MbcWrapper{mbc}
+
+	d, err := json.Marshal(wrapped)
+	if err != nil {
+		t.Error(err)
+	}
+
+	var out MbcWrapper
+	if e := json.Unmarshal(d, &out); e != nil {
+		t.Error(e)
+	}
+
+	assert.Equal(t, out.mbc, mbc)
 }

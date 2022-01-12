@@ -16,6 +16,7 @@ func main() {
 
 	debug := flag.Bool("debug", false, "run the emulator in debug mode")
 	profile := flag.Bool("profile", false, "profile the emulator")
+	loadSave := flag.Bool("load-save", false, "try to load a save")
 	flag.Parse()
 
 	if *profile {
@@ -36,7 +37,7 @@ func main() {
 
 	var cpu *backend.CPU
 	var ppu *backend.PPU
-	if backend.SaveExistsForRom(romPath) {
+	if *loadSave && backend.SaveExistsForRom(romPath) {
 		ppu, cpu = backend.LoadSave(romPath)
 	} else {
 		rom, err := ioutil.ReadFile(romPath)
@@ -48,7 +49,9 @@ func main() {
 		ppu = backend.NewPPU(cpu)
 	}
 
-	RunGame(ppu, cpu)
+	if *loadSave {
+		defer backend.DumpEmulatorState(romPath, ppu, cpu)
+	}
 
-	defer backend.DumpEmulatorState(romPath, ppu, cpu)
+	RunGame(ppu, cpu)
 }

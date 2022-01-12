@@ -61,9 +61,15 @@ func LoadSave(romPath string) (p *PPU, c *CPU) {
 	c.PC = cpuState.PC
 	c.ram = cpuState.Ram
 	c.IME = cpuState.IME
-	c.mbc = cpuState.Mbc
+	c.mbc = cpuState.Mbc.mbc
 	c.haltMode = cpuState.HaltMode
 	c.cycleCounter = cpuState.CycleCounter
+
+	c.apu = NewAPU(c)
+	c.KeyPressedMap = map[string]bool{
+		"up": false, "down": false, "left": false, "right": false,
+		"A": false, "B": false, "start": false, "select": false,
+	}
 
 	return NewPPU(c), c
 }
@@ -75,7 +81,7 @@ type CPUState struct {
 	Ram []byte // 64 KB ram
 	IME bool   // interrupt master enable
 
-	Mbc MBC // memory bank controller
+	Mbc MbcWrapper // memory bank controller
 
 	HaltMode     byte
 	CycleCounter uint64
@@ -97,7 +103,7 @@ func DumpEmulatorState(romPath string, p *PPU, c *CPU) {
 	cpuState.PC = c.PC
 	cpuState.Ram = c.ram
 	cpuState.IME = c.IME
-	cpuState.Mbc = c.mbc
+	cpuState.Mbc = MbcWrapper{c.mbc}
 	cpuState.HaltMode = c.haltMode
 	cpuState.CycleCounter = c.cycleCounter
 

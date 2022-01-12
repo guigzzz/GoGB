@@ -1,11 +1,82 @@
 package backend
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"reflect"
+)
 
 // MBC represents a memory bank controller
 type MBC interface {
 	ReadMemory(uint16) byte
 	WriteMemory(uint16, byte)
+}
+
+type MbcWrapper struct {
+	mbc MBC
+}
+
+func getType(myvar interface{}) string {
+	if t := reflect.TypeOf(myvar); t.Kind() == reflect.Ptr {
+		return t.Elem().Name()
+	} else {
+		return t.Name()
+	}
+}
+
+const TYPE_FIELD = "Type"
+const MBC_FIELD = "MBC"
+
+func (w MbcWrapper) MarshalJSON() ([]byte, error) {
+	return json.Marshal(map[string]interface{}{
+		TYPE_FIELD: getType(w.mbc),
+		MBC_FIELD:  w.mbc,
+	})
+}
+
+func (w *MbcWrapper) UnmarshalJSON(d []byte) error {
+
+	var objMap map[string]*json.RawMessage
+	if e := json.Unmarshal(d, &objMap); e != nil {
+		return e
+	}
+
+	var t string
+	if e := json.Unmarshal(*objMap[TYPE_FIELD], &t); e != nil {
+		return e
+	}
+
+	v := *objMap[MBC_FIELD]
+	switch t {
+	case "MBC0":
+		var mbc MBC0
+		if e := json.Unmarshal(v, &mbc); e != nil {
+			return e
+		}
+		w.mbc = &mbc
+	case "MBC1":
+		var mbc MBC1
+		if e := json.Unmarshal(v, &mbc); e != nil {
+			return e
+		}
+		w.mbc = &mbc
+	case "MBC3":
+		var mbc MBC3
+		if e := json.Unmarshal(v, &mbc); e != nil {
+			return e
+		}
+		w.mbc = &mbc
+	case "MBC5":
+		var mbc MBC5
+		if e := json.Unmarshal(v, &mbc); e != nil {
+			return e
+		}
+		w.mbc = &mbc
+	default:
+		panic("Got unexpected type: " + t)
+	}
+
+	return nil
 }
 
 func getROMSize(sizeIndex byte) int {

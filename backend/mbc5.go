@@ -3,21 +3,21 @@ package backend
 import "fmt"
 
 type MBC5 struct {
-	ramEnabled      bool
-	selectedROMBank uint16
-	selectedRAMBank byte
+	RamEnabled      bool
+	SelectedROMBank uint16
+	SelectedRAMBank byte
 
-	rom []byte
-	ram []byte
+	Rom []byte
+	Ram []byte
 
-	numRomBanks byte
-	numRamBanks byte
+	NumRomBanks byte
+	NumRamBanks byte
 }
 
 func NewMBC5(rom []byte, useRam, useBattery bool) *MBC5 {
 	m := new(MBC5)
 
-	m.selectedROMBank = 1
+	m.SelectedROMBank = 1
 
 	headerSize := getROMSize(rom[0x0148])
 	if len(rom) != headerSize {
@@ -25,14 +25,14 @@ func NewMBC5(rom []byte, useRam, useBattery bool) *MBC5 {
 			"Actual rom has size %d but header says it has size %d, this is inconsistent",
 			len(rom), headerSize))
 	}
-	m.rom = rom
+	m.Rom = rom
 
-	m.numRomBanks = byte(headerSize / 0x4000)
+	m.NumRomBanks = byte(headerSize / 0x4000)
 
 	if useRam {
 		ramSize := getRAMSize(rom[0x0149])
-		m.numRamBanks = byte(ramSize / 0x2000)
-		m.ram = make([]byte, getRAMSize(rom[0x0149]))
+		m.NumRamBanks = byte(ramSize / 0x2000)
+		m.Ram = make([]byte, getRAMSize(rom[0x0149]))
 	}
 
 	if useBattery {
@@ -45,20 +45,20 @@ func NewMBC5(rom []byte, useRam, useBattery bool) *MBC5 {
 func (m *MBC5) ReadMemory(address uint16) byte {
 
 	if 0x0000 <= address && address < 0x4000 {
-		return m.rom[address]
+		return m.Rom[address]
 	}
 	if 0x4000 <= address && address < 0x8000 {
 
 		offset := uint32(address) - 0x4000
-		bankAddress := (uint32(m.selectedROMBank) * 0x4000) + offset
-		return m.rom[bankAddress]
+		bankAddress := (uint32(m.SelectedROMBank) * 0x4000) + offset
+		return m.Rom[bankAddress]
 
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled {
+		if m.RamEnabled {
 			offset := uint32(address) - 0xA000
-			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
-			return m.ram[bankAddress]
+			bankAddress := (uint32(m.SelectedRAMBank) * 0x2000) + offset
+			return m.Ram[bankAddress]
 		}
 
 		return 0xFF
@@ -71,30 +71,30 @@ func (m *MBC5) WriteMemory(address uint16, value byte) {
 
 	if 0x0000 <= address && address < 0x2000 {
 
-		m.ramEnabled = value&0xA == 0xA
+		m.RamEnabled = value&0xA == 0xA
 
 	} else if 0x2000 <= address && address < 0x3000 {
-		m.selectedROMBank = m.selectedROMBank&0xFF00 | uint16(value)
-		m.selectedROMBank %= uint16(m.numRomBanks)
+		m.SelectedROMBank = m.SelectedROMBank&0xFF00 | uint16(value)
+		m.SelectedROMBank %= uint16(m.NumRomBanks)
 	} else if 0x3000 <= address && address < 0x4000 {
-		m.selectedROMBank = m.selectedROMBank&0xFF | uint16(value)<<8
-		m.selectedROMBank %= uint16(m.numRomBanks)
+		m.SelectedROMBank = m.SelectedROMBank&0xFF | uint16(value)<<8
+		m.SelectedROMBank %= uint16(m.NumRomBanks)
 	} else if 0x4000 <= address && address < 0x6000 {
 
 		// either ram bank to use
 		// or RTC register to access
-		if m.ramEnabled {
-			m.selectedRAMBank = value % m.numRamBanks
+		if m.RamEnabled {
+			m.SelectedRAMBank = value % m.NumRamBanks
 		}
 
 	} else if 0x6000 <= address && address < 0x8000 {
 		// latch clock data
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled {
+		if m.RamEnabled {
 			offset := uint32(address) - 0xA000
-			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
-			m.ram[bankAddress] = value
+			bankAddress := (uint32(m.SelectedRAMBank) * 0x2000) + offset
+			m.Ram[bankAddress] = value
 		}
 
 	} else {
