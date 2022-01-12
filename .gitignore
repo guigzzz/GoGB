@@ -8,3 +8,4 @@ emulator.prof
 rom/dmg_sound
 rom/cpu_instrs
 out/
+saves/

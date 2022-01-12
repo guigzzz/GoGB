@@ -3,23 +3,23 @@ package backend
 import "fmt"
 
 type MBC1 struct {
-	ramEnabled      bool
-	selectedROMBank byte
-	selectedRAMBank byte
+	RamEnabled      bool
+	SelectedROMBank byte
+	SelectedRAMBank byte
 
-	rom []byte
-	ram []byte
+	Rom []byte
+	Ram []byte
 
 	ROMMode bool
 
-	numRomBanks byte
-	numRamBanks byte
+	NumRomBanks byte
+	NumRamBanks byte
 }
 
 func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 	m := new(MBC1)
 
-	m.selectedROMBank = 1
+	m.SelectedROMBank = 1
 
 	headerSize := getROMSize(rom[0x0148])
 	if len(rom) != headerSize {
@@ -27,14 +27,14 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 			"Actual rom has size %d but header says it has size %d, this is inconsistent",
 			len(rom), headerSize))
 	}
-	m.rom = rom
+	m.Rom = rom
 
-	m.numRomBanks = byte(headerSize / 0x4000)
+	m.NumRomBanks = byte(headerSize / 0x4000)
 
 	if useRam {
 		ramSize := getRAMSize(rom[0x0149])
-		m.numRamBanks = byte(ramSize / 0x2000)
-		m.ram = make([]byte, ramSize)
+		m.NumRamBanks = byte(ramSize / 0x2000)
+		m.Ram = make([]byte, ramSize)
 	}
 
 	m.ROMMode = true
@@ -45,20 +45,20 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 func (m *MBC1) ReadMemory(address uint16) byte {
 
 	if 0x0000 <= address && address < 0x4000 {
-		return m.rom[address]
+		return m.Rom[address]
 	}
 	if 0x4000 <= address && address < 0x8000 {
 
 		offset := uint32(address) - 0x4000
-		bankAddress := (uint32(m.selectedROMBank) * 0x4000) + offset
-		return m.rom[bankAddress]
+		bankAddress := (uint32(m.SelectedROMBank) * 0x4000) + offset
+		return m.Rom[bankAddress]
 
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled {
+		if m.RamEnabled && len(m.Ram) > 0 {
 			offset := uint32(address) - 0xA000
-			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
-			return m.ram[bankAddress]
+			bankAddress := (uint32(m.SelectedRAMBank) * 0x2000) + offset
+			return m.Ram[bankAddress]
 		}
 
 		return 0xFF
@@ -71,38 +71,38 @@ func (m *MBC1) WriteMemory(address uint16, value byte) {
 
 	if 0x0000 <= address && address < 0x2000 {
 
-		m.ramEnabled = value&0xF == 0xA
+		m.RamEnabled = value&0xF == 0xA
 
 	} else if 0x2000 <= address && address < 0x4000 {
 		value &= 0x1F // mask off lower 5 bits
 		if value%0x20 == 0 {
 			value++
 		}
-		m.selectedROMBank &= 0x60
-		m.selectedROMBank |= value
+		m.SelectedROMBank &= 0x60
+		m.SelectedROMBank |= value
 
-		m.selectedROMBank %= m.numRomBanks
+		m.SelectedROMBank %= m.NumRomBanks
 
 	} else if 0x4000 <= address && address < 0x6000 {
 		value &= 0b11
 		if m.ROMMode {
 			// in ROM mode
-			m.selectedROMBank &= 0x1F
-			m.selectedROMBank |= value << 5
+			m.SelectedROMBank &= 0x1F
+			m.SelectedROMBank |= value << 5
 
 			// in ROM mode only RAM bank 0 can be used
-			m.selectedRAMBank = 0
+			m.SelectedRAMBank = 0
 		} else {
 			// in RAM mode
-			m.selectedRAMBank = value
+			m.SelectedRAMBank = value
 
 			// in RAM mode, only ROM banks 0x01-0x1F can be used
-			m.selectedROMBank &= 0x1F
+			m.SelectedROMBank &= 0x1F
 		}
 
-		m.selectedROMBank %= m.numRomBanks
-		if m.ramEnabled {
-			m.selectedRAMBank %= m.numRamBanks
+		m.SelectedROMBank %= m.NumRomBanks
+		if m.RamEnabled {
+			m.SelectedRAMBank %= m.NumRamBanks
 		}
 
 	} else if 0x6000 <= address && address < 0x8000 {
@@ -111,10 +111,10 @@ func (m *MBC1) WriteMemory(address uint16, value byte) {
 
 	} else if 0xA000 <= address && address < 0xC000 {
 
-		if m.ramEnabled {
+		if m.RamEnabled {
 			offset := uint32(address) - 0xA000
-			bankAddress := (uint32(m.selectedRAMBank) * 0x2000) + offset
-			m.ram[bankAddress] = value
+			bankAddress := (uint32(m.SelectedRAMBank) * 0x2000) + offset
+			m.Ram[bankAddress] = value
 		}
 
 	} else {
