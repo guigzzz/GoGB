@@ -38,7 +38,7 @@ func main() {
 	var cpu *backend.CPU
 	var ppu *backend.PPU
 	if *loadSave && backend.SaveExistsForRom(romPath) {
-		ppu, cpu = backend.LoadSave(romPath)
+		ppu, cpu = backend.LoadSave(romPath, nil)
 	} else {
 		rom, err := ioutil.ReadFile(romPath)
 		if err != nil {

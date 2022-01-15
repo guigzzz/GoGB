@@ -40,7 +40,7 @@ func SaveExistsForRom(romPath string) bool {
 	return false
 }
 
-func LoadSave(romPath string) (p *PPU, c *CPU) {
+func LoadSave(romPath string, apuFactory ApuFactory) (p *PPU, c *CPU) {
 
 	save, err := os.ReadFile(makeSavePathForRomPath(romPath))
 	if err != nil {
@@ -65,7 +65,12 @@ func LoadSave(romPath string) (p *PPU, c *CPU) {
 	c.haltMode = cpuState.HaltMode
 	c.cycleCounter = cpuState.CycleCounter
 
-	c.apu = NewAPU(c)
+	if apuFactory == nil {
+		c.apu = NewAPU(c)
+	} else {
+		c.apu = apuFactory(c)
+	}
+
 	c.KeyPressedMap = map[string]bool{
 		"up": false, "down": false, "left": false, "right": false,
 		"A": false, "B": false, "start": false, "select": false,

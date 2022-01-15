@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"crypto/md5"
 	"io/ioutil"
 	"testing"
 
@@ -64,24 +63,11 @@ func TestRunBlarggTests(t *testing.T) {
 	assert.Equal(t, uint16(0x06F1), cpu.PC)
 	assert.Equal(t, uint64(0xe023860), cpu.cycleCounter)
 
-	hasher := md5.New()
-	for i := 0; i < 144; i++ {
-		for j := 0; j < 160; j++ {
-			pixel := ppu.Image.RGBAAt(j, i)
-			hasher.Write([]byte{pixel.R, pixel.G, pixel.B, pixel.A})
-		}
-	}
-
 	assert.Equal(t, EXPECTED_SUCCESS_LOG, logger.contents)
 
-	hash := hasher.Sum(nil)
-	trueHash := []byte{208, 216, 82, 235, 32, 231, 249, 27, 62, 163, 210, 223, 40, 85, 174, 11}
-
-	for i := range hash {
-		if hash[i] != trueHash[i] {
-			t.Errorf("Blargg test failed.")
-			return
-		}
+	ref := getImage("ref/blargg.png")
+	if !assert.Equal(t, ref, ppu.Image) {
+		ppu.dumpScreenToPng("out/blargg.png")
 	}
 }
 
