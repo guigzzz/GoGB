@@ -75,3 +75,25 @@ func TestStoreSPNN(t *testing.T) {
 	assert.Equal(t, c.ram[0xC100], byte(0xF8))
 	assert.Equal(t, c.ram[0xC101], byte(0xFF))
 }
+
+const JOYPAD = 0xFF00
+
+func TestJoypadNothingPressed(t *testing.T) {
+	c := NewTestCPU()
+
+	c.writeMemory(JOYPAD, 0b01_1111)
+
+	v := c.readMemory(JOYPAD)
+	assert.Equal(t, byte(0b1101_1111), v)
+}
+
+func TestJoypadPressed(t *testing.T) {
+	c := NewTestCPU()
+
+	c.KeyPressedMap = map[string]bool{"start": true}
+
+	c.writeMemory(JOYPAD, 0b01_1111)
+
+	v := c.readMemory(JOYPAD)
+	assert.Equal(t, byte(0b1101_0111), v)
+}

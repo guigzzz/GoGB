@@ -72,7 +72,7 @@ func (c *CPU) writeMemory(address uint16, value byte) {
 			c.DMA(value)
 			c.ram[0xFF46] = value
 		} else if address == 0xFF00 {
-			c.ram[0xFF00] = c.readKeyPressed(value)
+			c.ram[0xFF00] = 0b1100_0000 | (value & 0b11_0000) | c.readKeyPressed(value)
 		} else if address == 0xFF04 {
 			// when DIV is written
 			// it is reset to 0
