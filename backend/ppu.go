@@ -13,8 +13,9 @@ import (
 // PPU represents the pixel processing unit
 // contains references to ram sections containing video relevant data
 type PPU struct {
-	ram          []byte          // reference to memory shared with CPU
-	Image        *image.RGBA     // represents the current screen
+	ram          []byte      // reference to memory shared with CPU
+	Image        *image.RGBA // represents the current screen
+	rawLastImage *image.RGBA
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
 	cpu          *CPU
 	irq          bool
@@ -28,6 +29,7 @@ func NewPPU(c *CPU) *PPU {
 	p := new(PPU)
 	p.ram = c.ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
+	p.rawLastImage = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
 	p.cpu = c
 
 	p.sprites = make([]Sprite, 0, 10)
@@ -445,10 +447,26 @@ func getPixelColor(value byte) color.RGBA {
 	}
 }
 
+func mean(a, b byte) byte {
+	return byte((uint16(a) + uint16(b)) / 2)
+}
+
+func meanColor(a, b color.RGBA) color.RGBA {
+	return color.RGBA{
+		mean(a.R, b.R),
+		mean(a.G, b.G),
+		mean(a.B, b.B),
+		mean(a.A, b.A),
+	}
+}
+
 func (p *PPU) writeBufferToImage() {
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
-			p.Image.SetRGBA(j, i, getPixelColor(p.screenBuffer[i*160+j]))
+			currentColor := p.rawLastImage.RGBAAt(j, i)
+			pixel := getPixelColor(p.screenBuffer[i*160+j])
+			p.Image.SetRGBA(j, i, meanColor(pixel, currentColor))
+			p.rawLastImage.SetRGBA(j, i, pixel)
 		}
 	}
 }

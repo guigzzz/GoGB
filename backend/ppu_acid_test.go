@@ -55,7 +55,7 @@ func TestRunDmgAcid2(t *testing.T) {
 	cpu := NewCPU(rom, false, NewNullLogger(), NullApuFactory)
 	ppu := NewPPU(cpu)
 
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		ppu.RunEmulatorForAFrame()
 	}
 

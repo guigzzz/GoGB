@@ -30,7 +30,9 @@ func TestSaveEmulatorState(t *testing.T) {
 
 	ppu, _ = LoadSave(blargg, NullApuFactory)
 
-	ppu.RunEmulatorForAFrame()
+	for i := 0; i < 100; i++ {
+		ppu.RunEmulatorForAFrame()
+	}
 
 	if !assert.Equal(t, ref, ppu.Image) {
 		ppu.dumpScreenToPng("out/blargg.png")
