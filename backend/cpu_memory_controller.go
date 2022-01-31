@@ -1,10 +1,5 @@
 package backend
 
-// type MMU interface {
-// 	readMemory(address uint16) byte
-// 	writeMemory(address uint16, value byte)
-// }
-
 type MMU struct {
 	ram []byte
 
