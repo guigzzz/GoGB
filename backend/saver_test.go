@@ -14,8 +14,8 @@ func TestSaveEmulatorState(t *testing.T) {
 	}
 
 	ref := getImage("ref/blargg.png")
-	if !assert.Equal(t, ref, emulator.ppu.Image) {
-		emulator.ppu.dumpScreenToPng("out/blargg.png")
+	if !assert.Equal(t, ref, emulator.GetImage()) {
+		emulator.dumpScreenToPng("out/blargg.png")
 	}
 
 	DumpEmulatorState(blargg, emulator)
@@ -28,7 +28,7 @@ func TestSaveEmulatorState(t *testing.T) {
 		emulator.RunForAFrame()
 	}
 
-	if !assert.Equal(t, ref, emulator.ppu.Image) {
-		emulator.ppu.dumpScreenToPng("out/blargg.png")
+	if !assert.Equal(t, ref, emulator.GetImage()) {
+		emulator.dumpScreenToPng("out/blargg.png")
 	}
 }

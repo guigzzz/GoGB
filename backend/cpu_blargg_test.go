@@ -40,11 +40,9 @@ func TestRunBlarggTests(t *testing.T) {
 
 	assert.Equal(t, EXPECTED_SUCCESS_LOG, logger.contents)
 
-	ppu := emulator.ppu
-
 	ref := getImage("ref/blargg.png")
-	if !assert.Equal(t, ref, ppu.Image) {
-		ppu.dumpScreenToPng("out/blargg.png")
+	if !assert.Equal(t, ref, emulator.GetImage()) {
+		emulator.dumpScreenToPng("out/blargg.png")
 	}
 }
 

@@ -50,11 +50,9 @@ func TestRunMbcTests(t *testing.T) {
 				emulator.RunForAFrame()
 			}
 
-			ppu := emulator.ppu
-
-			if !assert.Equal(t, ref, ppu.Image) {
+			if !assert.Equal(t, ref, emulator.GetImage()) {
 				name := strings.TrimSuffix(r, filepath.Ext(r))
-				ppu.dumpScreenToPng("out/" + name + ".png")
+				emulator.dumpScreenToPng("out/" + name + ".png")
 			}
 		})
 	}
