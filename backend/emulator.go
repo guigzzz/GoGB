@@ -11,6 +11,10 @@ type Emulator struct {
 	cpu *CPU
 	mmu *MMU
 	apu *APU
+
+	enableApu bool
+	logger    Logger
+	debug     bool
 }
 
 func (e *Emulator) SetKeyIsPressed(key string, isPressed bool) {
@@ -29,15 +33,34 @@ func (e *Emulator) GetImage() *image.RGBA {
 	return e.ppu.Image
 }
 
-func newEmulatorForTests(path string) *Emulator {
-	return NewEmulator(path, false, false)
+func WithDisableApu() func(*Emulator) {
+	return func(e *Emulator) {
+		e.enableApu = false
+	}
 }
 
-func NewEmulator(path string, debug, enableApu bool) *Emulator {
-	return newEmulator(path, NewNullLogger(), debug, enableApu)
+func WithLogger(logger Logger) func(*Emulator) {
+	return func(e *Emulator) {
+		e.logger = logger
+	}
 }
 
-func newEmulator(path string, logger Logger, debug, enableApu bool) *Emulator {
+func WithDebug(debug bool) func(*Emulator) {
+	return func(e *Emulator) {
+		e.debug = debug
+	}
+}
+
+func NewEmulator(path string, options ...func(*Emulator)) *Emulator {
+	emu := new(Emulator)
+	emu.enableApu = true
+	emu.debug = false
+	emu.logger = NewNullLogger()
+
+	for _, o := range options {
+		o(emu)
+	}
+
 	rom, err := os.ReadFile(path)
 	if err != nil {
 		panic(err)
@@ -46,17 +69,22 @@ func newEmulator(path string, logger Logger, debug, enableApu bool) *Emulator {
 	ram := make([]byte, 1<<16)
 
 	apu := NewAPU(ram)
-	if !enableApu {
+	if !emu.enableApu {
 		// stops apu from emitting samples
 		// useful to avoid blocking in integ tests because nothing is consuming the samples
 		apu.Disable()
 	}
 
 	mbc := NewMBC(rom)
-	mmu := NewMMU(ram, mbc, logger, apu.AudioRegisterWriteCallback)
+	mmu := NewMMU(ram, mbc, emu.logger, apu.AudioRegisterWriteCallback)
 
-	cpu := NewCPU(debug, apu, mmu)
+	cpu := NewCPU(emu.debug, apu, mmu)
 	ppu := NewPPU(ram, cpu.RunSync)
 
-	return &Emulator{ppu, cpu, mmu, apu}
+	emu.ppu = ppu
+	emu.cpu = cpu
+	emu.apu = apu
+	emu.mmu = mmu
+
+	return emu
 }

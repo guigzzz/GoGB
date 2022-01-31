@@ -15,7 +15,7 @@ const (
 func Init(path string) (*Emulator, *RecordingLogger) {
 	logger := NewRecordingLogger()
 
-	emulator := newEmulator(path, logger, false, false)
+	emulator := NewEmulator(path, WithLogger(logger), WithDisableApu())
 
 	emulator.ppu.ram[LCDC] |= 1 << lcdDisplayEnable
 

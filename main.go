@@ -39,7 +39,7 @@ func main() {
 	if *loadSave && backend.SaveExistsForRom(romPath) {
 		emu = backend.LoadSave(romPath)
 	} else {
-		emu = backend.NewEmulator(romPath, *debug, true)
+		emu = backend.NewEmulator(romPath, backend.WithDebug(*debug))
 	}
 
 	if *loadSave {

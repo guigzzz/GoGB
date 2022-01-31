@@ -53,10 +53,12 @@ func LoadSave(romPath string) *Emulator {
 		panic(err)
 	}
 
+	logger := NewNullLogger()
+
 	cpuState := state.Cpu
 
 	apu := NewAPU(cpuState.Ram)
-	mmu := NewMMU(cpuState.Ram, cpuState.Mbc.mbc, NewPrintLogger(), apu.AudioRegisterWriteCallback)
+	mmu := NewMMU(cpuState.Ram, cpuState.Mbc.mbc, logger, apu.AudioRegisterWriteCallback)
 
 	cpu := new(CPU)
 	cpu.reg = cpuState.Reg
@@ -70,7 +72,7 @@ func LoadSave(romPath string) *Emulator {
 
 	ppu := NewPPU(cpuState.Ram, cpu.RunSync)
 
-	return &Emulator{ppu, cpu, mmu, apu}
+	return &Emulator{ppu, cpu, mmu, apu, true, logger, false}
 }
 
 type CPUState struct {
