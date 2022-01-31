@@ -4,7 +4,6 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -47,12 +46,7 @@ func getImage(path string) *image.RGBA {
 
 func TestRunDmgAcid2(t *testing.T) {
 
-	rom, err := ioutil.ReadFile(romPath)
-	if err != nil {
-		panic(err)
-	}
-
-	emulator := newEmulatorForTests(rom)
+	emulator := newEmulatorForTests(romPath)
 
 	for i := 0; i < 100; i++ {
 		emulator.RunForAFrame()

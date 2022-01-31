@@ -17,20 +17,21 @@ type PPU struct {
 	Image        *image.RGBA // represents the current screen
 	rawLastImage *image.RGBA
 	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
-	cpu          *CPU
 	irq          bool
 	sprites      Sprites
+
+	stepCpu func(int)
 
 	windowCounter int
 }
 
 // NewPPU creates a new PPU object
-func NewPPU(ram []byte, c *CPU) *PPU {
+func NewPPU(ram []byte, stepCpu func(int)) *PPU {
 	p := new(PPU)
 	p.ram = ram
 	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
 	p.rawLastImage = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
-	p.cpu = c
+	p.stepCpu = stepCpu
 
 	p.sprites = make([]Sprite, 0, 10)
 
@@ -367,7 +368,7 @@ func reverse(in byte) byte {
 }
 
 func (p *PPU) RunCPU(cycles int) {
-	p.cpu.RunSync(cycles * 4)
+	p.stepCpu(cycles * 4)
 }
 
 func (p *PPU) performPixelTransfer(lineNumber byte) {

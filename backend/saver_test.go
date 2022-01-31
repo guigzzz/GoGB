@@ -1,20 +1,13 @@
 package backend
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestSaveEmulatorState(t *testing.T) {
-
-	rom, err := ioutil.ReadFile(blargg)
-	if err != nil {
-		panic(err)
-	}
-
-	emulator := newEmulatorForTests(rom)
+	emulator := newEmulatorForTests(blargg)
 
 	for i := 0; i < 5000; i++ {
 		emulator.RunForAFrame()

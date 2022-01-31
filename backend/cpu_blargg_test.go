@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,14 +13,9 @@ const (
 )
 
 func Init(path string) (*Emulator, *RecordingLogger) {
-	rom, err := ioutil.ReadFile(path)
-	if err != nil {
-		panic(err)
-	}
-
 	logger := NewRecordingLogger()
 
-	emulator := newEmulator(rom, logger, false, false)
+	emulator := newEmulator(path, logger, false, false)
 
 	emulator.ppu.ram[LCDC] |= 1 << lcdDisplayEnable
 

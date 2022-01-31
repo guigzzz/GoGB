@@ -3,6 +3,7 @@ package backend
 import (
 	"image"
 	"io"
+	"os"
 )
 
 type Emulator struct {
@@ -28,15 +29,20 @@ func (e *Emulator) GetImage() *image.RGBA {
 	return e.ppu.Image
 }
 
-func newEmulatorForTests(rom []byte) *Emulator {
-	return NewEmulator(rom, false, false)
+func newEmulatorForTests(path string) *Emulator {
+	return NewEmulator(path, false, false)
 }
 
-func NewEmulator(rom []byte, debug, enableApu bool) *Emulator {
-	return newEmulator(rom, NewNullLogger(), debug, enableApu)
+func NewEmulator(path string, debug, enableApu bool) *Emulator {
+	return newEmulator(path, NewNullLogger(), debug, enableApu)
 }
 
-func newEmulator(rom []byte, logger Logger, debug, enableApu bool) *Emulator {
+func newEmulator(path string, logger Logger, debug, enableApu bool) *Emulator {
+	rom, err := os.ReadFile(path)
+	if err != nil {
+		panic(err)
+	}
+
 	ram := make([]byte, 1<<16)
 
 	apu := NewAPU(ram)
@@ -50,7 +56,7 @@ func newEmulator(rom []byte, logger Logger, debug, enableApu bool) *Emulator {
 	mmu := NewMMU(ram, mbc, logger, apu.AudioRegisterWriteCallback)
 
 	cpu := NewCPU(debug, apu, mmu)
-	ppu := NewPPU(ram, cpu)
+	ppu := NewPPU(ram, cpu.RunSync)
 
 	return &Emulator{ppu, cpu, mmu, apu}
 }

@@ -2,7 +2,6 @@ package backend
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"path"
 	"path/filepath"
 	"strings"
@@ -45,12 +44,7 @@ func TestRunMbcTests(t *testing.T) {
 	for _, r := range roms {
 
 		t.Run(r, func(t *testing.T) {
-			rom, err := ioutil.ReadFile(path.Join(mbcTestRomPath, r))
-			if err != nil {
-				panic(err)
-			}
-
-			emulator := newEmulatorForTests(rom)
+			emulator := newEmulatorForTests(path.Join(mbcTestRomPath, r))
 
 			for i := 0; i < 500; i++ {
 				emulator.RunForAFrame()

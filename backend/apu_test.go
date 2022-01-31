@@ -10,7 +10,8 @@ func InitApu() *APU {
 	ram := make([]byte, 1<<16)
 
 	apu := NewAPU(ram)
-	apu.emitSamples = false
+
+	apu.Disable() // don't emit samples
 
 	return apu
 }

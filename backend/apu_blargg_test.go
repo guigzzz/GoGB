@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"io/ioutil"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,24 +24,12 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 	for _, r := range roms {
 		fullPath := "../rom/sound_rom_singles/" + r.name
 		t.Run(r.name, func(t *testing.T) {
-			rom, err := ioutil.ReadFile(fullPath)
-			if err != nil {
-				panic(err)
-			}
+			emulator := newEmulatorForTests(fullPath)
 
-			ram := make([]byte, 1<<16)
-			mbc := NewMBC(rom)
-
-			apu := NewAPU(ram)
-			apu.emitSamples = false
-
-			mmu := NewMMU(ram, mbc, NewNullLogger(), apu.AudioRegisterWriteCallback)
-
-			cpu := NewCPU(false, apu, mmu)
-			ppu := NewPPU(ram, cpu)
+			cpu := emulator.cpu
 
 			for cpu.PC != r.successProgramCounter && cpu.cycleCounter < 50_000_000 {
-				ppu.RunEmulatorForAFrame()
+				emulator.RunForAFrame()
 			}
 
 			assert.Equal(t, r.successProgramCounter, cpu.PC)

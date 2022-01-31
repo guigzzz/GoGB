@@ -3,7 +3,6 @@ package main
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path"
@@ -40,12 +39,7 @@ func main() {
 	if *loadSave && backend.SaveExistsForRom(romPath) {
 		emu = backend.LoadSave(romPath)
 	} else {
-		rom, err := ioutil.ReadFile(romPath)
-		if err != nil {
-			panic(err)
-		}
-
-		emu = backend.NewEmulator(rom, *debug, true)
+		emu = backend.NewEmulator(romPath, *debug, true)
 	}
 
 	if *loadSave {
