@@ -16,14 +16,14 @@ type CPU struct {
 	cycleCounter uint64 // to count cycles
 
 	mmu *MMU
-	apu APU
+	apu *APU
 
 	debugger *DebugHarness
 }
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU(debug bool, apu APU, mmu *MMU) *CPU {
+func NewCPU(debug bool, apu *APU, mmu *MMU) *CPU {
 	c := new(CPU)
 
 	c.apu = apu
@@ -57,10 +57,6 @@ func (c *CPU) readMemory(address uint16) byte {
 
 func (c *CPU) writeMemory(address uint16, value byte) {
 	c.mmu.writeMemory(address, value)
-}
-
-func (c *CPU) GetAPU() APU {
-	return c.apu
 }
 
 func (c *CPU) RunSync(allowance int) {

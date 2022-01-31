@@ -40,7 +40,7 @@ func SaveExistsForRom(romPath string) bool {
 	return false
 }
 
-func LoadSave(romPath string) (*PPU, *CPU, APU, *MMU) {
+func LoadSave(romPath string) (*PPU, *CPU, *APU, *MMU) {
 
 	save, err := os.ReadFile(makeSavePathForRomPath(romPath))
 	if err != nil {

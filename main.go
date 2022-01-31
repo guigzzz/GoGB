@@ -38,20 +38,21 @@ func main() {
 	var cpu *backend.CPU
 	var ppu *backend.PPU
 	var mmu *backend.MMU
+	var apu *backend.APU
 	if *loadSave && backend.SaveExistsForRom(romPath) {
-		ppu, cpu, _, mmu = backend.LoadSave(romPath)
+		ppu, cpu, apu, mmu = backend.LoadSave(romPath)
 	} else {
 		rom, err := ioutil.ReadFile(romPath)
 		if err != nil {
 			panic(err)
 		}
 
-		ppu, cpu, mmu, _ = backend.Compose(rom, *debug, true)
+		ppu, cpu, mmu, apu = backend.Compose(rom, *debug, true)
 	}
 
 	if *loadSave {
 		defer backend.DumpEmulatorState(romPath, ppu, cpu, mmu)
 	}
 
-	RunGame(ppu, cpu.GetAPU(), mmu.KeyPressedMap)
+	RunGame(ppu, apu, mmu.KeyPressedMap)
 }

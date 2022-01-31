@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func InitApu() *APUImpl {
+func InitApu() *APU {
 	ram := make([]byte, 1<<16)
 
 	apu := NewAPU(ram)

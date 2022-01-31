@@ -14,7 +14,7 @@ func NewTestMBC() MBC {
 func NewTestCPU() *CPU {
 	ram := make([]byte, 1<<16)
 
-	apu := &NullAPU{}
+	apu := NewAPU(ram)
 
 	mbc := NewTestMBC()
 	mmu := NewMMU(ram, mbc, NewNullLogger(), apu.AudioRegisterWriteCallback)

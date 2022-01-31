@@ -27,9 +27,9 @@ func TestSaveEmulatorState(t *testing.T) {
 
 	DumpEmulatorState(blargg, ppu, cpu, mmu)
 
-	ppu, _, loadApu, _ := LoadSave(blargg)
+	ppu, _, apu, _ := LoadSave(blargg)
 
-	loadApu.(*APUImpl).emitSamples = false
+	apu.Disable()
 
 	for i := 0; i < 100; i++ {
 		ppu.RunEmulatorForAFrame()

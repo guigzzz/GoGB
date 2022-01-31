@@ -46,7 +46,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return width, height
 }
 
-func RunGame(p *backend.PPU, a backend.APU, keyPressedMap map[string]bool) {
+func RunGame(p *backend.PPU, a *backend.APU, keyPressedMap map[string]bool) {
 	game := &Game{p, keyPressedMap}
 
 	audioContext := audio.NewContext(48000)

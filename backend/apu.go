@@ -5,19 +5,6 @@ import (
 	"io"
 )
 
-type APU interface {
-	ToReadCloser() io.ReadCloser
-	StepAPU()
-	AudioRegisterWriteCallback(addr uint16, oldValue, value byte)
-}
-
-type NullAPU struct{}
-
-func (a *NullAPU) StepAPU()                                       {}
-func (a *NullAPU) Read(p []byte) (int, error)                     { return 0, nil }
-func (a *NullAPU) ToReadCloser() io.ReadCloser                    { return io.NopCloser(a) }
-func (a *NullAPU) AudioRegisterWriteCallback(_ uint16, _, _ byte) {}
-
 const (
 	// Square 1
 	NR10 = 0xFF10 // -PPP NSSS Sweep period, negate, shift
@@ -62,7 +49,7 @@ var WAVE_DUTY_TABLE = [4][8]byte{
 
 var CODE_TO_DIVISOR = [8]byte{8, 16, 32, 48, 64, 80, 96, 112}
 
-type APUImpl struct {
+type APU struct {
 	ram []byte
 
 	cycleCounter int
@@ -105,8 +92,8 @@ const (
 	SAMPLE_BUFFER_SIZE = 1024
 )
 
-func NewAPU(ram []byte) *APUImpl {
-	apu := new(APUImpl)
+func NewAPU(ram []byte) *APU {
+	apu := new(APU)
 
 	apu.ram = ram
 
@@ -118,7 +105,7 @@ func NewAPU(ram []byte) *APUImpl {
 	return apu
 }
 
-func (a *APUImpl) isByteBitSet(addr uint16, bit uint) bool {
+func (a *APU) isByteBitSet(addr uint16, bit uint) bool {
 	if bit > 7 {
 		panic(fmt.Sprintf("Unexpected byte bit: %d", bit))
 	}
@@ -132,7 +119,7 @@ func boolToNum(b bool) byte {
 	return 0
 }
 
-func (a *APUImpl) getSquare1Output() (byte, byte) {
+func (a *APU) getSquare1Output() (byte, byte) {
 	duty := a.ram[NR11] & 0b1100_000 >> 6
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare1]
@@ -150,7 +137,7 @@ func (a *APUImpl) getSquare1Output() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
-func (a *APUImpl) getSquare2Output() (byte, byte) {
+func (a *APU) getSquare2Output() (byte, byte) {
 	duty := a.ram[NR21] & 0b1100_000 >> 6
 
 	amplitude := WAVE_DUTY_TABLE[duty][a.waveDutyPositionSquare2]
@@ -170,7 +157,7 @@ func (a *APUImpl) getSquare2Output() (byte, byte) {
 
 var volumeCodeToShift = [4]byte{4, 0, 1, 2}
 
-func (a *APUImpl) getWaveOutput() (byte, byte) {
+func (a *APU) getWaveOutput() (byte, byte) {
 
 	index := a.positionCounterWave / 2
 
@@ -195,7 +182,7 @@ func (a *APUImpl) getWaveOutput() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
-func (a *APUImpl) getNoiseOutput() (byte, byte) {
+func (a *APU) getNoiseOutput() (byte, byte) {
 	amplitude := byte(^a.lsfr & 1)
 	output := amplitude * byte(a.currentVolumeNoise)
 
@@ -211,7 +198,7 @@ func (a *APUImpl) getNoiseOutput() (byte, byte) {
 	return leftOutput, rightOutput
 }
 
-func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) {
+func (a *APU) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) {
 
 	switch addr {
 	case NR11:
@@ -420,21 +407,21 @@ func (a *APUImpl) AudioRegisterWriteCallback(addr uint16, oldValue, value byte) 
 	}
 }
 
-func (a *APUImpl) clearBit(addr uint16, bit uint) {
+func (a *APU) clearBit(addr uint16, bit uint) {
 	if bit > 7 {
 		panic("unexpected")
 	}
 	a.ram[addr] &^= 1 << bit
 }
 
-func (a *APUImpl) setBit(addr uint16, bit uint) {
+func (a *APU) setBit(addr uint16, bit uint) {
 	if bit > 7 {
 		panic("unexpected")
 	}
 	a.ram[addr] |= 1 << bit
 }
 
-func (a *APUImpl) updateLengthTimers() {
+func (a *APU) updateLengthTimers() {
 	if a.isByteBitSet(NR14, 6) && a.lengthTimerSquare1 > 0 {
 		a.lengthTimerSquare1--
 		if a.lengthTimerSquare1 == 0 {
@@ -464,7 +451,7 @@ func (a *APUImpl) updateLengthTimers() {
 	}
 }
 
-func (a *APUImpl) sweepComputeNewFrequency(shift int, negate bool) int {
+func (a *APU) sweepComputeNewFrequency(shift int, negate bool) int {
 	newFreq := a.shadowFrequency >> int(shift)
 	if negate {
 		newFreq = a.shadowFrequency - newFreq
@@ -479,7 +466,7 @@ func (a *APUImpl) sweepComputeNewFrequency(shift int, negate bool) int {
 	return newFreq
 }
 
-func (a *APUImpl) updateSweep() {
+func (a *APU) updateSweep() {
 	if a.sweepTimer > 0 {
 		a.sweepTimer--
 	}
@@ -511,7 +498,7 @@ func (a *APUImpl) updateSweep() {
 	}
 }
 
-func (a *APUImpl) updateVolumeEnvelope() {
+func (a *APU) updateVolumeEnvelope() {
 
 	if a.ram[NR12]&0b111 > 0 {
 		if a.periodTimerSquare1 > 0 {
@@ -566,7 +553,7 @@ func (a *APUImpl) updateVolumeEnvelope() {
 
 }
 
-func (a *APUImpl) updateFrameSequencer() {
+func (a *APU) updateFrameSequencer() {
 
 	if a.cycleCounter%8192 > 0 {
 		return
@@ -588,7 +575,7 @@ func (a *APUImpl) updateFrameSequencer() {
 	a.frameSequencerCounter++
 }
 
-func (a *APUImpl) updateState() {
+func (a *APU) updateState() {
 
 	a.updateFrameSequencer()
 
@@ -641,7 +628,7 @@ func (a *APUImpl) updateState() {
 	}
 }
 
-func (a *APUImpl) emitSample(sample uint16) {
+func (a *APU) emitSample(sample uint16) {
 	low := sample & 0xFF
 	high := sample & 0xFF00 >> 8
 	a.sampleBuf = append(a.sampleBuf, byte(low), byte(high))
@@ -651,7 +638,11 @@ func (a *APUImpl) emitSample(sample uint16) {
 	}
 }
 
-func (a *APUImpl) StepAPU() {
+func (a *APU) Disable() {
+	a.emitSamples = false
+}
+
+func (a *APU) StepAPU() {
 
 	a.updateState()
 
@@ -678,7 +669,7 @@ func (a *APUImpl) StepAPU() {
 	}
 }
 
-func (a *APUImpl) Read(p []byte) (n int, err error) {
+func (a *APU) Read(p []byte) (n int, err error) {
 	select {
 	case buf := <-a.samples:
 		count := copy(p, buf)
@@ -687,4 +678,4 @@ func (a *APUImpl) Read(p []byte) (n int, err error) {
 		return 0, nil
 	}
 }
-func (a *APUImpl) ToReadCloser() io.ReadCloser { return io.NopCloser(a) }
+func (a *APU) ToReadCloser() io.ReadCloser { return io.NopCloser(a) }
