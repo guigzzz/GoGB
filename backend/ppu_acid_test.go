@@ -52,12 +52,13 @@ func TestRunDmgAcid2(t *testing.T) {
 		panic(err)
 	}
 
-	ppu, _, _, _ := composeForTests(rom)
+	emulator := newEmulatorForTests(rom)
 
 	for i := 0; i < 100; i++ {
-		ppu.RunEmulatorForAFrame()
+		emulator.RunForAFrame()
 	}
 
+	ppu := emulator.ppu
 	ref := getImage(refDmgAcid)
 	if !assert.Equal(t, ppu.Image.Pix, ref.Pix) {
 		ppu.dumpScreenToPng(outDmgAcid)

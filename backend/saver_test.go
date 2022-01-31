@@ -14,28 +14,28 @@ func TestSaveEmulatorState(t *testing.T) {
 		panic(err)
 	}
 
-	ppu, cpu, mmu, _ := composeForTests(rom)
+	emulator := newEmulatorForTests(rom)
 
 	for i := 0; i < 5000; i++ {
-		ppu.RunEmulatorForAFrame()
+		emulator.RunForAFrame()
 	}
 
 	ref := getImage("ref/blargg.png")
-	if !assert.Equal(t, ref, ppu.Image) {
-		ppu.dumpScreenToPng("out/blargg.png")
+	if !assert.Equal(t, ref, emulator.ppu.Image) {
+		emulator.ppu.dumpScreenToPng("out/blargg.png")
 	}
 
-	DumpEmulatorState(blargg, ppu, cpu, mmu)
+	DumpEmulatorState(blargg, emulator)
 
-	ppu, _, apu, _ := LoadSave(blargg)
+	emulator = LoadSave(blargg)
 
-	apu.Disable()
+	emulator.apu.Disable()
 
 	for i := 0; i < 100; i++ {
-		ppu.RunEmulatorForAFrame()
+		emulator.RunForAFrame()
 	}
 
-	if !assert.Equal(t, ref, ppu.Image) {
-		ppu.dumpScreenToPng("out/blargg.png")
+	if !assert.Equal(t, ref, emulator.ppu.Image) {
+		emulator.ppu.dumpScreenToPng("out/blargg.png")
 	}
 }

@@ -40,7 +40,7 @@ func SaveExistsForRom(romPath string) bool {
 	return false
 }
 
-func LoadSave(romPath string) (*PPU, *CPU, *APU, *MMU) {
+func LoadSave(romPath string) *Emulator {
 
 	save, err := os.ReadFile(makeSavePathForRomPath(romPath))
 	if err != nil {
@@ -70,7 +70,7 @@ func LoadSave(romPath string) (*PPU, *CPU, *APU, *MMU) {
 
 	ppu := NewPPU(cpuState.Ram, cpu)
 
-	return ppu, cpu, apu, mmu
+	return &Emulator{ppu, cpu, mmu, apu}
 }
 
 type CPUState struct {
@@ -90,11 +90,14 @@ type EmulatorState struct {
 	Cpu CPUState
 }
 
-func DumpEmulatorState(romPath string, p *PPU, c *CPU, m *MMU) {
+func DumpEmulatorState(romPath string, emu *Emulator) {
 	setupSaveDirectory()
 
 	save := makeSavePathForRomPath(romPath)
 	fmt.Println("Writing save file: " + save)
+
+	c := emu.cpu
+	m := emu.mmu
 
 	cpuState := CPUState{}
 	cpuState.Reg = c.reg

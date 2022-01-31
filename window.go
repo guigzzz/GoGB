@@ -10,30 +10,30 @@ import (
 )
 
 type Game struct {
-	p *backend.PPU
-
-	keyPressedMap map[string]bool
+	e *backend.Emulator
 }
 
 func (g *Game) Update() error {
 
+	emu := g.e
+
 	for key, value := range keyMap {
 		if inpututil.IsKeyJustPressed(key) {
-			g.keyPressedMap[value] = true
+			emu.SetKeyIsPressed(value, true)
 		}
 
 		if inpututil.IsKeyJustReleased(key) {
-			g.keyPressedMap[value] = false
+			emu.SetKeyIsPressed(value, false)
 		}
 	}
 
-	g.p.RunEmulatorForAFrame()
+	emu.RunForAFrame()
 
 	return nil
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	image := ebiten.NewImageFromImage(g.p.Image)
+	image := ebiten.NewImageFromImage(g.e.GetImage())
 	screen.DrawImage(image, &ebiten.DrawImageOptions{})
 }
 
@@ -46,11 +46,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return width, height
 }
 
-func RunGame(p *backend.PPU, a *backend.APU, keyPressedMap map[string]bool) {
-	game := &Game{p, keyPressedMap}
+func RunGame(emu *backend.Emulator) {
+	game := &Game{emu}
 
 	audioContext := audio.NewContext(48000)
-	player, err := audioContext.NewPlayer(a.ToReadCloser())
+	player, err := audioContext.NewPlayer(emu.GetAudioStream())
 	if err != nil {
 		panic(err)
 	}
