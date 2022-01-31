@@ -42,8 +42,8 @@ func TestStack(t *testing.T) {
 	c.PC = 0x0110
 
 	c.pushPC()
-	assert.Equal(t, c.ram[0xFFFD], byte(0x01))
-	assert.Equal(t, c.ram[0xFFFC], byte(0x10))
+	assert.Equal(t, c.readMemory(0xFFFD), byte(0x01))
+	assert.Equal(t, c.readMemory(0xFFFC), byte(0x10))
 
 	c.reg[B] = 0xFF
 	c.reg[C] = 0x2
@@ -93,8 +93,8 @@ func TestCall(t *testing.T) {
 
 	c.Call(0x200)
 	assert.Equal(t, c.PC, uint16(0x200))
-	assert.Equal(t, c.ram[c.SP], byte(0x03))
-	assert.Equal(t, c.ram[c.SP+1], byte(0x1))
+	assert.Equal(t, c.readMemory(c.SP), byte(0x03))
+	assert.Equal(t, c.readMemory(c.SP+1), byte(0x1))
 
 	c.SetFlag(ZFlag)
 	pcInc, cycleInc := c.CallNZ(0x300)
@@ -110,6 +110,6 @@ func TestCall(t *testing.T) {
 	assert.Equal(t, 24, cycleInc)
 
 	assert.Equal(t, uint16(0x300), c.PC)
-	assert.Equal(t, byte(0x03), c.ram[c.SP])
-	assert.Equal(t, byte(0x2), c.ram[c.SP+1])
+	assert.Equal(t, byte(0x03), c.readMemory(c.SP))
+	assert.Equal(t, byte(0x2), c.readMemory(c.SP+1))
 }

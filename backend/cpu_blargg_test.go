@@ -13,19 +13,6 @@ const (
 	wario  = "../rom/wario_walking_demo.gb"
 )
 
-func NullApuFactory(c *CPU) APU {
-	return &NullAPU{}
-}
-
-func RealApuFactory(c *CPU) APU {
-	a := NewAPU(c)
-
-	// do not emit samples as nothing consumes them
-	a.emitSamples = false
-
-	return a
-}
-
 func Init(path string, useRealApu bool) (*PPU, *CPU, *RecordingLogger) {
 	rom, err := ioutil.ReadFile(path)
 	if err != nil {
@@ -34,15 +21,22 @@ func Init(path string, useRealApu bool) (*PPU, *CPU, *RecordingLogger) {
 
 	logger := NewRecordingLogger()
 
-	var factory ApuFactory = nil
+	ram := make([]byte, 1<<16)
+
+	var apu APU = nil
 	if !useRealApu {
-		factory = NullApuFactory
+		apu = &NullAPU{}
 	} else {
-		factory = RealApuFactory
+		impl := NewAPU(ram)
+		impl.emitSamples = false
+		apu = impl
 	}
 
-	cpu := NewCPU(rom, false, logger, factory)
-	ppu := NewPPU(cpu)
+	mbc := NewMBC(rom)
+	mmu := NewMMU(ram, mbc, logger, apu.AudioRegisterWriteCallback)
+
+	cpu := NewCPU(false, apu, mmu)
+	ppu := NewPPU(ram, cpu)
 
 	ppu.ram[LCDC] |= 1 << lcdDisplayEnable
 

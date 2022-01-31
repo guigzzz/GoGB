@@ -7,6 +7,26 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func NewTestMBC() MBC {
+	return NewMBC0(make([]byte, 1<<15))
+}
+
+func NewTestCPU() *CPU {
+	ram := make([]byte, 1<<16)
+
+	apu := &NullAPU{}
+
+	mbc := NewTestMBC()
+	mmu := NewMMU(ram, mbc, NewNullLogger(), apu.AudioRegisterWriteCallback)
+
+	cpu := NewCPU(false, apu, mmu)
+
+	// reset all flags
+	cpu.reg[F] = 0
+
+	return cpu
+}
+
 func TestAddReg(t *testing.T) {
 	c := NewTestCPU()
 
@@ -32,7 +52,8 @@ func TestAddHL(t *testing.T) {
 	c.Writedouble(H, L, 0xC000)
 
 	c.reg[A] = 0x3C
-	c.ram[c.ReadHL()] = 0x12 // (HL = 0) = 0
+
+	c.writeMemory(c.ReadHL(), 0x12) // (HL = 0) = 0
 	c.AddHL(false)
 	assert.Equal(t, c.reg[A], byte(0x4E))
 	assertFlagsSet(t, c.reg[F])
@@ -43,7 +64,7 @@ func TestADCReg(t *testing.T) {
 
 	c.reg[A] = 0xE1
 	c.reg[E] = 0x0F
-	c.ram[0] = 0x1E
+	c.writeMemory(0, 0x1E)
 	c.SetFlag(CFlag)
 
 	c.AddReg(E, true)
@@ -56,7 +77,7 @@ func TestADCN(t *testing.T) {
 
 	c.reg[A] = 0xE1
 	c.reg[E] = 0x0F
-	c.ram[0] = 0x1E
+	c.writeMemory(0, 0x1E)
 	c.SetFlag(CFlag)
 
 	c.Addn(0x3B, true)
@@ -71,7 +92,7 @@ func TestADCHL(t *testing.T) {
 
 	c.reg[A] = 0xE1
 	c.reg[E] = 0x0F
-	c.ram[c.ReadHL()] = 0x1E
+	c.writeMemory(c.ReadHL(), 0x1E)
 	c.SetFlag(CFlag)
 
 	c.AddHL(true)
@@ -83,7 +104,7 @@ func TestSubReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3E
 	c.reg[E] = 0x3E
-	c.ram[0] = 0x40
+	c.writeMemory(0, 0x40)
 
 	c.SubReg(E, false)
 	assert.Equal(t, c.reg[A], byte(0))
@@ -94,7 +115,7 @@ func TestSubN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3E
 	c.reg[E] = 0x3E
-	c.ram[0] = 0x40
+	c.writeMemory(0, 0x40)
 
 	c.Subn(0x0F, false)
 	assert.Equal(t, c.reg[A], byte(0x2F))
@@ -107,7 +128,7 @@ func TestSubHL(t *testing.T) {
 
 	c.reg[A] = 0x3E
 	c.reg[E] = 0x3E
-	c.ram[c.ReadHL()] = 0x40
+	c.writeMemory(c.ReadHL(), 0x40)
 
 	c.SubHL(false)
 	assert.Equal(t, c.reg[A], byte(0xFE))
@@ -118,7 +139,7 @@ func TestSbcReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3B
 	c.reg[H] = 0x2A
-	c.ram[0] = 0x4F
+	c.writeMemory(0, 0x4F)
 	c.SetFlag(CFlag)
 
 	c.SubReg(H, true)
@@ -130,7 +151,7 @@ func TestSbcN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3B
 	c.reg[H] = 0x2A
-	c.ram[0] = 0x4F
+	c.writeMemory(0, 0x4F)
 	c.SetFlag(CFlag)
 
 	c.Subn(0x3A, true)
@@ -144,7 +165,7 @@ func TestSbcHL(t *testing.T) {
 	c.Writedouble(H, L, 0xC000)
 
 	c.reg[A] = 0x3B
-	c.ram[c.ReadHL()] = 0x4F
+	c.writeMemory(c.ReadHL(), 0x4F)
 	c.SetFlag(CFlag)
 
 	c.SubHL(true)
@@ -156,7 +177,7 @@ func TestAndReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x5A
 	c.reg[L] = 0x3F
-	c.ram[0x003F] = 0
+	c.writeMemory(0x3F, 0)
 
 	c.AndReg(L)
 	assert.Equal(t, c.reg[A], byte(0x1A))
@@ -167,7 +188,7 @@ func TestAndN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x5A
 	c.reg[L] = 0x3F
-	c.ram[0x003F] = 0
+	c.writeMemory(0x3F, 0)
 
 	c.Andn(0x38)
 	assert.Equal(t, c.reg[A], byte(0x18))
@@ -181,7 +202,7 @@ func TestAndHL(t *testing.T) {
 
 	c.reg[A] = 0x5A
 	c.reg[L] = 0x3F
-	c.ram[c.ReadHL()] = 0
+	c.writeMemory(c.ReadHL(), 0)
 
 	c.AndHL()
 	assert.Equal(t, c.reg[A], byte(0))
@@ -191,7 +212,7 @@ func TestAndHL(t *testing.T) {
 func TestOrReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x5A
-	c.ram[0] = 0x0F
+	c.writeMemory(0, 0x0F)
 
 	c.OrReg(A)
 	assert.Equal(t, c.reg[A], byte(0x5A))
@@ -201,7 +222,7 @@ func TestOrReg(t *testing.T) {
 func TestOrN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x5A
-	c.ram[0] = 0x0F
+	c.writeMemory(0, 0x0F)
 
 	c.Orn(0x3)
 	assert.Equal(t, c.reg[A], byte(0x5B))
@@ -214,7 +235,7 @@ func TestOrHL(t *testing.T) {
 	c.Writedouble(H, L, 0xC000)
 
 	c.reg[A] = 0x5A
-	c.ram[c.ReadHL()] = 0x0F
+	c.writeMemory(c.ReadHL(), 0xF)
 
 	c.OrHL()
 	assert.Equal(t, c.reg[A], byte(0x5F))
@@ -224,7 +245,7 @@ func TestOrHL(t *testing.T) {
 func TestXorReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0xFF
-	c.ram[0] = 0x8A
+	c.writeMemory(0, 0x8A)
 
 	c.XorReg(A)
 	assert.Equal(t, c.reg[A], byte(0))
@@ -234,7 +255,7 @@ func TestXorReg(t *testing.T) {
 func TestXorN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0xFF
-	c.ram[0] = 0x8A
+	c.writeMemory(0, 0x8A)
 
 	c.Xorn(0xF)
 	assert.Equal(t, c.reg[A], byte(0xF0))
@@ -247,7 +268,8 @@ func TestXorHL(t *testing.T) {
 	c.Writedouble(H, L, 0xC000)
 
 	c.reg[A] = 0xFF
-	c.ram[c.ReadHL()] = 0x8A
+
+	c.writeMemory(c.ReadHL(), 0x8A)
 
 	c.XorHL()
 	assert.Equal(t, c.reg[A], byte(0x75))
@@ -258,7 +280,7 @@ func TestCpReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3C
 	c.reg[B] = 0x2F
-	c.ram[0] = 0x40
+	c.writeMemory(0, 0x40)
 
 	c.CpReg(B)
 	assertFlagsSet(t, c.reg[F], HFlag, NFlag)
@@ -268,7 +290,7 @@ func TestCpN(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0x3C
 	c.reg[B] = 0x2F
-	c.ram[0] = 0x40
+	c.writeMemory(0, 0x40)
 
 	c.Cpn(0x3C)
 	assertFlagsSet(t, c.reg[F], ZFlag, NFlag)
@@ -281,7 +303,7 @@ func TestCpHL(t *testing.T) {
 
 	c.reg[A] = 0x3C
 	c.reg[B] = 0x2F
-	c.ram[c.ReadHL()] = 0x40
+	c.writeMemory(c.ReadHL(), 0x40)
 
 	c.CpHL()
 	assertFlagsSet(t, c.reg[F], NFlag, CFlag)
@@ -302,7 +324,7 @@ func TestIncHL(t *testing.T) {
 	c.writeMemory(c.ReadHL(), 0x50)
 
 	c.IncHL()
-	assert.Equal(t, c.ram[c.ReadHL()], byte(0x51))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(0x51))
 	assertFlagsSet(t, c.reg[F])
 }
 
@@ -321,7 +343,7 @@ func TestDecHL(t *testing.T) {
 	c.writeMemory(c.ReadHL(), 0)
 
 	c.DecHL()
-	assert.Equal(t, c.ram[c.ReadHL()], byte(0xFF))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(0xFF))
 	assertFlagsSet(t, c.reg[F], HFlag, NFlag)
 }
 
@@ -357,7 +379,7 @@ func TestIncAndDecRegs(t *testing.T) {
 func TestSwapReg(t *testing.T) {
 	c := NewTestCPU()
 	c.reg[A] = 0
-	c.ram[0] = 0xF0
+	c.writeMemory(0, 0xF0)
 
 	c.SwapReg(A)
 	assert.Equal(t, c.reg[A], byte(0))
@@ -371,7 +393,7 @@ func TestSwapHL(t *testing.T) {
 	c.writeMemory(c.ReadHL(), 0xF0)
 
 	c.SwapHL()
-	assert.Equal(t, c.ram[c.ReadHL()], byte(0x0F))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(0x0F))
 	assertFlagsSet(t, c.reg[F])
 }
 
@@ -392,7 +414,7 @@ func TestBitHL(t *testing.T) {
 
 	c.Writedouble(H, L, 0xC000)
 
-	c.ram[c.ReadHL()] = 0xFE
+	c.writeMemory(c.ReadHL(), 0xFE)
 
 	c.BitHL(0)
 	assertFlagsSet(t, c.reg[F], ZFlag, HFlag)
@@ -419,7 +441,7 @@ func TestSetHL(t *testing.T) {
 	c.writeMemory(c.ReadHL(), 0)
 
 	c.SetHL(3)
-	assert.Equal(t, c.ram[c.ReadHL()], byte(0x08))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(0x08))
 }
 
 func TestResReg(t *testing.T) {
@@ -440,7 +462,7 @@ func TestResHL(t *testing.T) {
 	c.writeMemory(c.ReadHL(), 0xFF)
 
 	c.ResHL(3)
-	assert.Equal(t, c.ram[c.ReadHL()], byte(0xF7))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(0xF7))
 }
 
 func TestAddSPN(t *testing.T) {

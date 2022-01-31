@@ -105,10 +105,10 @@ const (
 	SAMPLE_BUFFER_SIZE = 1024
 )
 
-func NewAPU(c *CPU) *APUImpl {
+func NewAPU(ram []byte) *APUImpl {
 	apu := new(APUImpl)
 
-	apu.ram = c.ram
+	apu.ram = ram
 
 	apu.sampleBuf = make([]byte, SAMPLE_BUFFER_SIZE)
 	apu.samples = make(chan []byte)

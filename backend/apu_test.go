@@ -7,8 +7,9 @@ import (
 )
 
 func InitApu() *APUImpl {
-	cpu := NewTestCPU()
-	apu := NewAPU(cpu)
+	ram := make([]byte, 1<<16)
+
+	apu := NewAPU(ram)
 	apu.emitSamples = false
 
 	return apu

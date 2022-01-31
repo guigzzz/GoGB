@@ -30,8 +30,16 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 				panic(err)
 			}
 
-			cpu := NewCPU(rom, false, NewNullLogger(), RealApuFactory)
-			ppu := NewPPU(cpu)
+			ram := make([]byte, 1<<16)
+			mbc := NewMBC(rom)
+
+			apu := NewAPU(ram)
+			apu.emitSamples = false
+
+			mmu := NewMMU(ram, mbc, NewNullLogger(), apu.AudioRegisterWriteCallback)
+
+			cpu := NewCPU(false, apu, mmu)
+			ppu := NewPPU(ram, cpu)
 
 			for cpu.PC != r.successProgramCounter && cpu.cycleCounter < 50_000_000 {
 				ppu.RunEmulatorForAFrame()

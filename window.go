@@ -11,18 +11,19 @@ import (
 
 type Game struct {
 	p *backend.PPU
-	c *backend.CPU
+
+	keyPressedMap map[string]bool
 }
 
 func (g *Game) Update() error {
 
 	for key, value := range keyMap {
 		if inpututil.IsKeyJustPressed(key) {
-			g.c.KeyPressedMap[value] = true
+			g.keyPressedMap[value] = true
 		}
 
 		if inpututil.IsKeyJustReleased(key) {
-			g.c.KeyPressedMap[value] = false
+			g.keyPressedMap[value] = false
 		}
 	}
 
@@ -45,11 +46,11 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 	return width, height
 }
 
-func RunGame(p *backend.PPU, c *backend.CPU) {
-	game := &Game{p: p, c: c}
+func RunGame(p *backend.PPU, a backend.APU, keyPressedMap map[string]bool) {
+	game := &Game{p, keyPressedMap}
 
 	audioContext := audio.NewContext(48000)
-	player, err := audioContext.NewPlayer(c.GetAPU().ToReadCloser())
+	player, err := audioContext.NewPlayer(a.ToReadCloser())
 	if err != nil {
 		panic(err)
 	}

@@ -40,7 +40,7 @@ func SaveExistsForRom(romPath string) bool {
 	return false
 }
 
-func LoadSave(romPath string, apuFactory ApuFactory) (p *PPU, c *CPU) {
+func LoadSave(romPath string) (*PPU, *CPU, APU, *MMU) {
 
 	save, err := os.ReadFile(makeSavePathForRomPath(romPath))
 	if err != nil {
@@ -55,28 +55,22 @@ func LoadSave(romPath string, apuFactory ApuFactory) (p *PPU, c *CPU) {
 
 	cpuState := state.Cpu
 
-	c = new(CPU)
-	c.reg = cpuState.Reg
-	c.SP = cpuState.SP
-	c.PC = cpuState.PC
-	c.ram = cpuState.Ram
-	c.IME = cpuState.IME
-	c.mbc = cpuState.Mbc.mbc
-	c.haltMode = cpuState.HaltMode
-	c.cycleCounter = cpuState.CycleCounter
+	apu := NewAPU(cpuState.Ram)
+	mmu := NewMMU(cpuState.Ram, cpuState.Mbc.mbc, NewPrintLogger(), apu.AudioRegisterWriteCallback)
 
-	if apuFactory == nil {
-		c.apu = NewAPU(c)
-	} else {
-		c.apu = apuFactory(c)
-	}
+	cpu := new(CPU)
+	cpu.reg = cpuState.Reg
+	cpu.SP = cpuState.SP
+	cpu.PC = cpuState.PC
+	cpu.IME = cpuState.IME
+	cpu.haltMode = cpuState.HaltMode
+	cpu.cycleCounter = cpuState.CycleCounter
+	cpu.apu = apu
+	cpu.mmu = mmu
 
-	c.KeyPressedMap = map[string]bool{
-		"up": false, "down": false, "left": false, "right": false,
-		"A": false, "B": false, "start": false, "select": false,
-	}
+	ppu := NewPPU(cpuState.Ram, cpu)
 
-	return NewPPU(c), c
+	return ppu, cpu, apu, mmu
 }
 
 type CPUState struct {
@@ -96,7 +90,7 @@ type EmulatorState struct {
 	Cpu CPUState
 }
 
-func DumpEmulatorState(romPath string, p *PPU, c *CPU) {
+func DumpEmulatorState(romPath string, p *PPU, c *CPU, m *MMU) {
 	setupSaveDirectory()
 
 	save := makeSavePathForRomPath(romPath)
@@ -106,9 +100,9 @@ func DumpEmulatorState(romPath string, p *PPU, c *CPU) {
 	cpuState.Reg = c.reg
 	cpuState.SP = c.SP
 	cpuState.PC = c.PC
-	cpuState.Ram = c.ram
+	cpuState.Ram = m.ram
 	cpuState.IME = c.IME
-	cpuState.Mbc = MbcWrapper{c.mbc}
+	cpuState.Mbc = MbcWrapper{m.mbc}
 	cpuState.HaltMode = c.haltMode
 	cpuState.CycleCounter = c.cycleCounter
 

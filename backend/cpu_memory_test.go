@@ -23,26 +23,26 @@ func TestLoadHL(t *testing.T) {
 
 	c.Writedouble(H, L, 0xC0FF)
 
-	c.ram[c.ReadHL()] = 5
+	c.writeMemory(c.ReadHL(), 5)
 	c.LoadHL(A)
 	assert.Equal(t, c.reg[A], byte(5))
 
 	c.reg[A] = 25
 	c.Writedouble(H, L, 0xC000)
 	c.StoreReg(A)
-	assert.Equal(t, c.ram[c.ReadHL()], byte(25))
+	assert.Equal(t, c.readMemory(c.ReadHL()), byte(25))
 }
 
 func TestLoadHigh(t *testing.T) {
 	c := NewTestCPU()
-	c.ram[0xFF40] = 10
+	c.writeMemory(0xFF40, 10)
 
 	c.LoadHigh(0x40)
 	assert.Equal(t, c.reg[A], byte(10))
 
 	c.reg[A] = 100
 	c.StoreHigh(0x50)
-	assert.Equal(t, c.ram[0xFF50], byte(100))
+	assert.Equal(t, c.readMemory(0xFF50), byte(100))
 }
 
 func TestPushPC(t *testing.T) {
@@ -52,8 +52,8 @@ func TestPushPC(t *testing.T) {
 	c.PC = 0xF00F
 	c.pushPC()
 
-	assert.Equal(t, c.ram[0xFFFD], byte(0xF0))
-	assert.Equal(t, c.ram[0xFFFC], byte(0x0F))
+	assert.Equal(t, c.readMemory(0xFFFD), byte(0xF0))
+	assert.Equal(t, c.readMemory(0xFFFC), byte(0x0F))
 	assert.Equal(t, c.SP, uint16(0xFFFC))
 }
 
@@ -72,8 +72,8 @@ func TestStoreSPNN(t *testing.T) {
 	c.SP = 0xFFF8
 	c.StoreSPNN(0xC100)
 
-	assert.Equal(t, c.ram[0xC100], byte(0xF8))
-	assert.Equal(t, c.ram[0xC101], byte(0xFF))
+	assert.Equal(t, c.readMemory(0xC100), byte(0xF8))
+	assert.Equal(t, c.readMemory(0xC101), byte(0xFF))
 }
 
 const JOYPAD = 0xFF00
@@ -90,7 +90,7 @@ func TestJoypadNothingPressed(t *testing.T) {
 func TestJoypadPressed(t *testing.T) {
 	c := NewTestCPU()
 
-	c.KeyPressedMap = map[string]bool{"start": true}
+	c.mmu.KeyPressedMap["start"] = true
 
 	c.writeMemory(JOYPAD, 0b01_1111)
 

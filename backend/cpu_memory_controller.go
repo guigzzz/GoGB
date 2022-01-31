@@ -1,5 +1,45 @@
 package backend
 
+// type MMU interface {
+// 	readMemory(address uint16) byte
+// 	writeMemory(address uint16, value byte)
+// }
+
+type MMU struct {
+	ram []byte
+
+	KeyPressedMap map[string]bool
+	mbc           MBC
+
+	logger Logger
+
+	audioRegisterWriteCallback AudioRegisterWriteCallback
+}
+
+type AudioRegisterWriteCallback = func(uint16, byte, byte)
+
+func NewMMU(ram []byte, mbc MBC, logger Logger, audioRegisterWriteCallback AudioRegisterWriteCallback) *MMU {
+	mmu := new(MMU)
+
+	mmu.ram = ram
+	mmu.mbc = mbc
+
+	mmu.KeyPressedMap = map[string]bool{
+		"up": false, "down": false, "left": false, "right": false,
+		"A": false, "B": false, "start": false, "select": false,
+	}
+
+	if logger == nil {
+		mmu.logger = NewPrintLogger()
+	} else {
+		mmu.logger = logger
+	}
+
+	mmu.audioRegisterWriteCallback = audioRegisterWriteCallback
+
+	return mmu
+}
+
 var audioRegOrLookup = [32]byte{
 	0x80, 0x3F, 0x00, 0xFF, 0xBF, // NR10-NR14
 	0xFF, 0x3F, 0x00, 0xFF, 0xBF, // NR20-NR24
@@ -9,114 +49,109 @@ var audioRegOrLookup = [32]byte{
 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, // unused regs
 }
 
-func delegateReadToMBC(address uint16) bool {
+func delegateToMBC(address uint16) bool {
 	return 0x0000 <= address && address < 0x8000 ||
 		0xA000 <= address && address < 0xC000
 }
 
-func delegateWriteToMBC(address uint16) bool {
-	return 0x0000 <= address && address < 0x8000 ||
-		0xA000 <= address && address < 0xC000
-}
+func (m *MMU) readMemory(address uint16) byte {
 
-func (c *CPU) readMemory(address uint16) byte {
+	if delegateToMBC(address) {
 
-	if delegateReadToMBC(address) {
-
-		return c.mbc.ReadMemory(address)
+		return m.mbc.ReadMemory(address)
 
 	} else if 0xFEA0 <= address && address < 0xFF00 {
 		return 00
 	} else if 0xFF10 <= address && address <= 0xFF2F {
 		// audio regs
 		or := audioRegOrLookup[address-0xFF10]
-		return c.ram[address] | or
+		return m.ram[address] | or
 	}
-	return c.ram[address]
+	return m.ram[address]
 }
 
-func (c *CPU) writeMemory(address uint16, value byte) {
+func (m *MMU) writeMemory(address uint16, value byte) {
 
-	if delegateWriteToMBC(address) {
+	if delegateToMBC(address) {
 
-		c.mbc.WriteMemory(address, value)
+		m.mbc.WriteMemory(address, value)
 
 	} else if 0xFEA0 <= address && address < 0xFF00 {
 		// ignore
 	} else if 0xFF10 <= address && address <= 0xFF2F {
-		oldValue := c.ram[address]
+		oldValue := m.ram[address]
 		// audio
 		if address == 0xFF26 {
 			// NR52 only top bits are writeable
-			c.ram[address] = value & 0xF0
+			m.ram[address] = value & 0xF0
 
 			// check if APU disabled. If yes, then clear all regs
 			if value&0x80 == 0 {
 				for i := 0xFF10; i <= 0xFF2F; i++ {
-					c.ram[i] = 0
+					m.ram[i] = 0
 				}
 			}
 
 		} else {
 			// ignore all writes if APU disabled
-			isOn := c.ram[0xFF26]&0x80 > 0
+			isOn := m.ram[0xFF26]&0x80 > 0
 			if isOn {
-				c.ram[address] = value
+				m.ram[address] = value
 			}
 		}
-		c.apu.AudioRegisterWriteCallback(address, oldValue, value)
+		m.audioRegisterWriteCallback(address, oldValue, value)
 	} else {
 		if address == 0xFF02 && value == 0x81 {
-			c.logger.Log(string(c.ram[0xFF01]))
+			m.logger.Log(string(m.ram[0xFF01]))
 		} else if address == 0xFF46 {
-			c.DMA(value)
-			c.ram[0xFF46] = value
+			m.DMA(value)
+			m.ram[0xFF46] = value
 		} else if address == 0xFF00 {
-			c.ram[0xFF00] = 0b1100_0000 | (value & 0b11_0000) | c.readKeyPressed(value)
+			m.ram[0xFF00] = 0b1100_0000 | (value & 0b11_0000) | m.readKeyPressed(value)
 		} else if address == 0xFF04 {
 			// when DIV is written
 			// it is reset to 0
-			c.ram[0xFF04] = 0
+			m.ram[0xFF04] = 0
 		} else {
-			c.ram[address] = value
+			m.ram[address] = value
 		}
 	}
 }
 
-func (c *CPU) DMA(sourceAddress byte) {
+func (m *MMU) DMA(sourceAddress byte) {
 	blockAddress := uint16(sourceAddress) << 8
 	for i := uint16(0); i < 0xA0; i++ {
-		c.ram[0xFE00+i] = c.ram[blockAddress+i]
+		m.ram[0xFE00+i] = m.ram[blockAddress+i]
 	}
 }
 
-func (c *CPU) readKeyPressed(code byte) byte {
+func (m *MMU) readKeyPressed(code byte) byte {
 	regValue := byte(0xF)
 	if code&0x20 == 0 { // 0b1101_1111
-		if c.KeyPressedMap["start"] {
+		if m.KeyPressedMap["start"] {
 			regValue &^= 0x8
 		}
-		if c.KeyPressedMap["select"] {
+		if m.KeyPressedMap["select"] {
 			regValue &^= 0x4
 		}
-		if c.KeyPressedMap["B"] {
+		if m.KeyPressedMap["B"] {
 			regValue &^= 0x2
 		}
-		if c.KeyPressedMap["A"] {
+		if m.KeyPressedMap["A"] {
 			regValue &^= 0x1
 		}
 	}
 	if code&0x10 == 0 { // 0b1110_1111
-		if c.KeyPressedMap["down"] {
+		if m.KeyPressedMap["down"] {
 			regValue &^= 0x8
 		}
-		if c.KeyPressedMap["up"] {
+		if m.KeyPressedMap["up"] {
 			regValue &^= 0x4
 		}
-		if c.KeyPressedMap["left"] {
+		if m.KeyPressedMap["left"] {
 			regValue &^= 0x2
 		}
-		if c.KeyPressedMap["right"] {
+		if m.KeyPressedMap["right"] {
 			regValue &^= 0x1
 		}
 	}

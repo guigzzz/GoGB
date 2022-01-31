@@ -105,7 +105,7 @@ func getRAMSize(sizeIndex byte) int {
 	}
 }
 
-func getMemoryControllerFrom(rom []byte) MBC {
+func NewMBC(rom []byte) MBC {
 
 	mbcNumber := rom[0x147]
 

@@ -14,8 +14,7 @@ func TestSaveEmulatorState(t *testing.T) {
 		panic(err)
 	}
 
-	cpu := NewCPU(rom, false, NewNullLogger(), NullApuFactory)
-	ppu := NewPPU(cpu)
+	ppu, cpu, mmu, _ := composeForTests(rom)
 
 	for i := 0; i < 5000; i++ {
 		ppu.RunEmulatorForAFrame()
@@ -26,9 +25,11 @@ func TestSaveEmulatorState(t *testing.T) {
 		ppu.dumpScreenToPng("out/blargg.png")
 	}
 
-	DumpEmulatorState(blargg, ppu, cpu)
+	DumpEmulatorState(blargg, ppu, cpu, mmu)
 
-	ppu, _ = LoadSave(blargg, NullApuFactory)
+	ppu, _, loadApu, _ := LoadSave(blargg)
+
+	loadApu.(*APUImpl).emitSamples = false
 
 	for i := 0; i < 100; i++ {
 		ppu.RunEmulatorForAFrame()

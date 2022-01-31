@@ -14,14 +14,14 @@ func TestTimerFiresWhenItShould(t *testing.T) {
 
 	tma := byte(0x5)
 
-	c.ram[0xFF07] = 0b100 // TAC
-	c.ram[0xFF06] = tma   // TMA
-	c.ram[0xFF05] = 0xFF  // TIMA
+	c.writeMemory(0xFF07, 0b100) // TAC
+	c.writeMemory(0xFF06, tma)   // TMA
+	c.writeMemory(0xFF05, 0xFF)  // TIMA
 
 	c.checkForTimerIncrementAndInterrupt()
 
-	assert.Equal(t, tma, c.ram[0xFF05])
-	assert.Equal(t, byte(0x4), c.ram[0xFF0F])
+	assert.Equal(t, tma, c.readMemory(0xFF05))
+	assert.Equal(t, byte(0x4), c.readMemory(0xFF0F))
 }
 
 func TestTimerDoesNotFireWhenTimerOff(t *testing.T) {
@@ -32,14 +32,14 @@ func TestTimerDoesNotFireWhenTimerOff(t *testing.T) {
 
 	tma := byte(0x5)
 
-	c.ram[0xFF07] = 0b0  // TAC
-	c.ram[0xFF06] = tma  // TMA
-	c.ram[0xFF05] = 0xFF // TIMA
+	c.writeMemory(0xFF07, 0b0)  // TAC
+	c.writeMemory(0xFF06, tma)  // TMA
+	c.writeMemory(0xFF05, 0xFF) // TIMA
 
 	c.checkForTimerIncrementAndInterrupt()
 
-	assert.Equal(t, byte(0xFF), c.ram[0xFF05])
-	assert.Equal(t, byte(0), c.ram[0xFF0F])
+	assert.Equal(t, byte(0xFF), c.readMemory(0xFF05))
+	assert.Equal(t, byte(0), c.readMemory(0xFF0F))
 }
 
 func TestTimerDoesNotFireWhenItShouldNot(t *testing.T) {
@@ -50,12 +50,12 @@ func TestTimerDoesNotFireWhenItShouldNot(t *testing.T) {
 
 	tma := byte(0x5)
 
-	c.ram[0xFF07] = 0b100 // TAC
-	c.ram[0xFF06] = tma   // TMA
-	c.ram[0xFF05] = 0xFF  // TIMA
+	c.writeMemory(0xFF07, 0b100) // TAC
+	c.writeMemory(0xFF06, tma)   // TMA
+	c.writeMemory(0xFF05, 0xFF)  // TIMA
 
 	c.checkForTimerIncrementAndInterrupt()
 
-	assert.Equal(t, byte(0xFF), c.ram[0xFF05])
-	assert.Equal(t, byte(0), c.ram[0xFF0F])
+	assert.Equal(t, byte(0xFF), c.readMemory(0xFF05))
+	assert.Equal(t, byte(0), c.readMemory(0xFF0F))
 }

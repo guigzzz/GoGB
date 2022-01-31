@@ -11,7 +11,7 @@ var (
 // Bit 4: Joypad   Interrupt Request (INT 60h)  (1=Request)
 
 func (c *CPU) getInterruptRegisters() (byte, byte) {
-	return c.ram[0xFF0F], c.ram[0xFFFF]
+	return c.readMemory(0xFF0F), c.readMemory(0xFFFF)
 }
 
 func (c *CPU) CheckAndHandleInterrupts() {
@@ -32,7 +32,7 @@ func (c *CPU) CheckAndHandleInterrupts() {
 		if IF&IE&mask > 0 {
 			c.IME = false
 
-			c.ram[0xFF0F] &^= mask
+			c.writeMemory(0xFF0F, c.readMemory(0xFF0F)&^mask)
 
 			// we are either not halted
 			// or halted but will handle interrupt (i.e. mode 1)
@@ -65,9 +65,9 @@ func tacToPeriod(tac byte) uint64 {
 
 func (c *CPU) checkForTimerIncrementAndInterrupt() {
 
-	c.ram[0xFF04] = byte(c.cycleCounter >> 8) // div
+	c.writeMemory(0xFF04, byte(c.cycleCounter>>8))
 
-	tac := c.ram[0xFF07]
+	tac := c.readMemory(0xFF07)
 
 	if tac&0x4 == 0 {
 		return
@@ -79,15 +79,15 @@ func (c *CPU) checkForTimerIncrementAndInterrupt() {
 		return
 	}
 
-	if c.ram[0xFF05] == 0xFF {
+	if c.readMemory(0xFF05) == 0xFF {
 
 		// write TMA into TIMA
-		c.ram[0xFF05] = c.ram[0xFF06]
+		c.writeMemory(0xFF05, c.readMemory(0xFF06))
 
 		// write to IF to signal interrupt
-		c.ram[0xFF0F] |= 0x4
+		c.writeMemory(0xFF0F, c.readMemory(0xFF0F)|0x4)
 	} else {
-		c.ram[0xFF05]++
+		c.writeMemory(0xFF05, c.readMemory(0xFF05)+1)
 	}
 }
 

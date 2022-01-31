@@ -50,8 +50,7 @@ func TestRunMbcTests(t *testing.T) {
 				panic(err)
 			}
 
-			cpu := NewCPU(rom, false, NewNullLogger(), NullApuFactory)
-			ppu := NewPPU(cpu)
+			ppu, _, _, _ := composeForTests(rom)
 
 			for i := 0; i < 500; i++ {
 				ppu.RunEmulatorForAFrame()

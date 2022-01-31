@@ -5,12 +5,7 @@ type CPU struct {
 	reg [8]byte
 	SP  uint16 // stack pointer
 	PC  uint16 // program counter
-	ram []byte // 64 KB ram
 	IME bool   // interrupt master enable
-
-	mbc MBC // memory bank controller
-
-	KeyPressedMap map[string]bool
 
 	haltMode byte
 	// 0 -> not halted,
@@ -20,22 +15,19 @@ type CPU struct {
 
 	cycleCounter uint64 // to count cycles
 
-	debugger *DebugHarness
-	logger   Logger
-
+	mmu *MMU
 	apu APU
-}
 
-type ApuFactory func(c *CPU) APU
+	debugger *DebugHarness
+}
 
 // NewCPU creates a new cpu struct
 // also copies the bootrom into ram from 0x0000 to 0x00FF (256 bytes)
-func NewCPU(rom []byte, debug bool, logger Logger, apuFactory ApuFactory) *CPU {
+func NewCPU(debug bool, apu APU, mmu *MMU) *CPU {
 	c := new(CPU)
 
-	c.ram = make([]byte, 1<<16)
-
-	c.mbc = getMemoryControllerFrom(rom)
+	c.apu = apu
+	c.mmu = mmu
 
 	c.writeMemory(0xFF40, 0x91)
 	c.writeMemory(0xFF47, 0xFC)
@@ -50,45 +42,25 @@ func NewCPU(rom []byte, debug bool, logger Logger, apuFactory ApuFactory) *CPU {
 	c.Writedouble(D, E, 0x00D8)
 	c.Writedouble(H, L, 0x014D)
 
-	c.KeyPressedMap = map[string]bool{
-		"up": false, "down": false, "left": false, "right": false,
-		"A": false, "B": false, "start": false, "select": false,
-	}
-
 	c.haltMode = 0
 
 	if debug {
 		c.debugger = NewDebugHarness()
 	}
 
-	if logger == nil {
-		c.logger = NewPrintLogger()
-	} else {
-		c.logger = logger
-	}
-
-	if apuFactory == nil {
-		c.apu = NewAPU(c)
-	} else {
-		c.apu = apuFactory(c)
-	}
-
 	return c
+}
+
+func (c *CPU) readMemory(address uint16) byte {
+	return c.mmu.readMemory(address)
+}
+
+func (c *CPU) writeMemory(address uint16, value byte) {
+	c.mmu.writeMemory(address, value)
 }
 
 func (c *CPU) GetAPU() APU {
 	return c.apu
-}
-
-// NewTestCPU creates a barebone CPU specifically for tests
-// designed to be fast
-func NewTestCPU() *CPU {
-	c := new(CPU)
-	c.ram = make([]byte, 1<<16)
-
-	c.mbc = NewMBC0(make([]byte, 1<<15))
-
-	return c
 }
 
 func (c *CPU) RunSync(allowance int) {
