@@ -1,6 +1,7 @@
 package backend
 
 import (
+	"compress/gzip"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 )
 
 const SAVES = "saves"
-const JSON = ".json"
+const EXTENSION = ".json.gz"
 
 func setupSaveDirectory() {
 
@@ -24,7 +25,7 @@ func setupSaveDirectory() {
 
 func makeSavePathForRomPath(romPath string) string {
 	base := path.Base(filepath.ToSlash(romPath))
-	return path.Join(SAVES, base+JSON)
+	return path.Join(SAVES, base+EXTENSION)
 }
 
 func SaveExistsForRom(romPath string) bool {
@@ -42,13 +43,22 @@ func SaveExistsForRom(romPath string) bool {
 
 func LoadSave(romPath string) *Emulator {
 
-	save, err := os.ReadFile(makeSavePathForRomPath(romPath))
+	f, err := os.OpenFile(makeSavePathForRomPath(romPath), os.O_RDONLY, 0644)
 	if err != nil {
 		panic(err)
 	}
 
+	decompress, err := gzip.NewReader(f)
+	if err != nil {
+		panic(err)
+	}
+
+	defer decompress.Close()
+
+	decoder := json.NewDecoder(decompress)
+
 	var state EmulatorState
-	err = json.Unmarshal(save, &state)
+	err = decoder.Decode(&state)
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +128,15 @@ func DumpEmulatorState(romPath string, emu *Emulator) {
 		fmt.Println("Can't serialize", state)
 	}
 
-	err = os.WriteFile(save, bytes, 0644)
+	f, err := os.OpenFile(save, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	compress := gzip.NewWriter(f)
+	defer compress.Close()
+
+	_, err = compress.Write(bytes)
 	if err != nil {
 		panic(err)
 	}
