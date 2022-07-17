@@ -45,8 +45,7 @@ var audioRegOrLookup = [32]byte{
 }
 
 func delegateToMBC(address uint16) bool {
-	return 0x0000 <= address && address < 0x8000 ||
-		0xA000 <= address && address < 0xC000
+	return address < 0x8000 || 0xA000 <= address && address < 0xC000
 }
 
 func (m *MMU) readMemory(address uint16) byte {

@@ -7,19 +7,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func NewTestMBC() MBC {
-	return NewMBC0(make([]byte, 1<<15))
-}
-
 func NewTestCPU() *CPU {
-	ram := make([]byte, 1<<16)
-
-	apu := NewAPU(ram)
-
-	mbc := NewTestMBC()
-	mmu := NewMMU(ram, mbc, NewNullLogger(), apu.AudioRegisterWriteCallback)
-
-	cpu := NewCPU(false, apu, mmu)
+	cpu := NewEmulator(WithNoRom(), WithDisableApu()).cpu
 
 	// reset all flags
 	cpu.reg[F] = 0

@@ -19,7 +19,7 @@ func NewMBC0(rom []byte) *MBC0 {
 }
 
 func (m *MBC0) ReadMemory(address uint16) byte {
-	if 0x0000 <= address && address < 0x8000 {
+	if address < 0x8000 {
 		return m.Rom[address]
 	} else if 0xA000 <= address && address < 0xC000 {
 		return 0xFF
@@ -28,8 +28,7 @@ func (m *MBC0) ReadMemory(address uint16) byte {
 }
 
 func (m *MBC0) WriteMemory(address uint16, value byte) {
-	if 0x0000 <= address && address < 0x8000 ||
-		0xA000 <= address && address < 0xC000 {
+	if address < 0x8000 || 0xA000 <= address && address < 0xC000 {
 
 		// ignore all writes to these address blocks
 

@@ -46,7 +46,7 @@ func getImage(path string) *image.RGBA {
 
 func TestRunDmgAcid2(t *testing.T) {
 
-	emulator := NewEmulator(romPath, WithDisableApu())
+	emulator := NewEmulator(WithRom(romPath), WithDisableApu())
 
 	for i := 0; i < 100; i++ {
 		emulator.RunForAFrame()

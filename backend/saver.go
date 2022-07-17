@@ -82,7 +82,7 @@ func LoadSave(romPath string) *Emulator {
 
 	ppu := NewPPU(cpuState.Ram, cpu.RunSync)
 
-	return &Emulator{ppu, cpu, mmu, apu, true, logger, false}
+	return &Emulator{ppu, cpu, cpuState.Mbc.mbc, mmu, apu, true, logger, false}
 }
 
 type CPUState struct {

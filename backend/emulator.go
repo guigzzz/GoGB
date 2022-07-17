@@ -11,6 +11,7 @@ import (
 type Emulator struct {
 	ppu *PPU
 	cpu *CPU
+	mbc MBC
 	mmu *MMU
 	apu *APU
 
@@ -53,7 +54,27 @@ func WithDebug(debug bool) func(*Emulator) {
 	}
 }
 
-func NewEmulator(path string, options ...func(*Emulator)) *Emulator {
+func WithRom(path string) func(*Emulator) {
+	return func(e *Emulator) {
+		rom, err := os.ReadFile(path)
+		if err != nil {
+			panic(err)
+		}
+		e.mbc = NewMBC(rom)
+	}
+}
+
+func NewTestMBC() MBC {
+	return NewMBC0(make([]byte, 1<<15))
+}
+
+func WithNoRom() func(*Emulator) {
+	return func(e *Emulator) {
+		e.mbc = NewTestMBC()
+	}
+}
+
+func NewEmulator(options ...func(*Emulator)) *Emulator {
 	emu := new(Emulator)
 	emu.enableApu = true
 	emu.debug = false
@@ -61,11 +82,6 @@ func NewEmulator(path string, options ...func(*Emulator)) *Emulator {
 
 	for _, o := range options {
 		o(emu)
-	}
-
-	rom, err := os.ReadFile(path)
-	if err != nil {
-		panic(err)
 	}
 
 	ram := make([]byte, 1<<16)
@@ -77,8 +93,7 @@ func NewEmulator(path string, options ...func(*Emulator)) *Emulator {
 		apu.Disable()
 	}
 
-	mbc := NewMBC(rom)
-	mmu := NewMMU(ram, mbc, emu.logger, apu.AudioRegisterWriteCallback)
+	mmu := NewMMU(ram, emu.mbc, emu.logger, apu.AudioRegisterWriteCallback)
 
 	cpu := NewCPU(emu.debug, apu, mmu)
 	ppu := NewPPU(ram, cpu.RunSync)

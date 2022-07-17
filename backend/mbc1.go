@@ -44,7 +44,7 @@ func NewMBC1(rom []byte, useRam, useBattery bool) *MBC1 {
 
 func (m *MBC1) ReadMemory(address uint16) byte {
 
-	if 0x0000 <= address && address < 0x4000 {
+	if address < 0x4000 {
 		return m.Rom[address]
 	}
 	if 0x4000 <= address && address < 0x8000 {
@@ -69,7 +69,7 @@ func (m *MBC1) ReadMemory(address uint16) byte {
 
 func (m *MBC1) WriteMemory(address uint16, value byte) {
 
-	if 0x0000 <= address && address < 0x2000 {
+	if address < 0x2000 {
 
 		m.RamEnabled = value&0xF == 0xA
 

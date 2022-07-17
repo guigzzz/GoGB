@@ -7,7 +7,7 @@ import (
 )
 
 func TestSaveEmulatorState(t *testing.T) {
-	emulator := NewEmulator(blargg, WithDisableApu())
+	emulator := NewEmulator(WithRom(blargg), WithDisableApu())
 
 	for i := 0; i < 5000; i++ {
 		emulator.RunForAFrame()

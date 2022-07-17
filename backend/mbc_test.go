@@ -44,7 +44,8 @@ func TestRunMbcTests(t *testing.T) {
 	for _, r := range roms {
 
 		t.Run(r, func(t *testing.T) {
-			emulator := NewEmulator(path.Join(mbcTestRomPath, r), WithDisableApu())
+			t.Parallel()
+			emulator := NewEmulator(WithRom(path.Join(mbcTestRomPath, r)), WithDisableApu())
 
 			for i := 0; i < 500; i++ {
 				emulator.RunForAFrame()

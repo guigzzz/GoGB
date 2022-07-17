@@ -24,7 +24,7 @@ func TestRunBlarggAudioTestRoms(t *testing.T) {
 	for _, r := range roms {
 		fullPath := "../rom/sound_rom_singles/" + r.name
 		t.Run(r.name, func(t *testing.T) {
-			emulator := NewEmulator(fullPath, WithDisableApu())
+			emulator := NewEmulator(WithRom(fullPath), WithDisableApu())
 
 			cpu := emulator.cpu
 
