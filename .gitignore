@@ -9,3 +9,6 @@ rom/dmg_sound
 rom/cpu_instrs
 out/
 saves/
+.fake
+__debug_bin
+.vscode

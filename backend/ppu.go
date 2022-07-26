@@ -251,7 +251,10 @@ type Sprite struct {
 
 type Sprites []Sprite
 
-func (s Sprites) Less(i, j int) bool {
+// use pointer receiver on all these to avoid allocations
+
+func (sp *Sprites) Less(i, j int) bool {
+	s := *sp
 	if s[i].xPos < s[j].xPos {
 		return true
 	} else if s[i].xPos == s[j].xPos && s[i].position < s[j].position {
@@ -259,8 +262,11 @@ func (s Sprites) Less(i, j int) bool {
 	}
 	return false
 }
-func (s Sprites) Len() int      { return len(s) }
-func (s Sprites) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
+func (sp *Sprites) Len() int { return len(*sp) }
+func (sp *Sprites) Swap(i, j int) {
+	s := *sp
+	s[i], s[j] = s[j], s[i]
+}
 
 func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool) {
 
@@ -298,7 +304,7 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
 	}
 
-	sort.Sort(sprites)
+	sort.Sort(&sprites)
 
 	pixels := [160]byte{}
 	palettes := [160]byte{}
