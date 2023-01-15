@@ -10,7 +10,8 @@ import (
 )
 
 type Game struct {
-	e *backend.Emulator
+	e               *backend.Emulator
+	speedMultiplier float32
 }
 
 func (g *Game) Update() error {
@@ -27,9 +28,23 @@ func (g *Game) Update() error {
 		}
 	}
 
+	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
+		g.UpdateMaxTps(0.1)
+	}
+
+	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
+		g.UpdateMaxTps(-0.1)
+	}
+
 	emu.RunForAFrame()
 
 	return nil
+}
+
+func (g *Game) UpdateMaxTps(increment float32) {
+	g.speedMultiplier += increment
+	println("New speed: ", g.speedMultiplier)
+	ebiten.SetMaxTPS((int)(g.speedMultiplier * 60))
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -47,7 +62,7 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (screenWidth, screenHeigh
 }
 
 func RunGame(emu *backend.Emulator) {
-	game := &Game{emu}
+	game := &Game{e: emu, speedMultiplier: 1}
 
 	audioContext := audio.NewContext(48000)
 	player, err := audioContext.NewPlayer(emu.GetAudioStream())
