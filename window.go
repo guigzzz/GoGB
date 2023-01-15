@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/guigzzz/GoGB/backend"
@@ -12,6 +13,7 @@ import (
 type Game struct {
 	e               *backend.Emulator
 	speedMultiplier float32
+	counter         int
 }
 
 func (g *Game) Update() error {
@@ -36,6 +38,12 @@ func (g *Game) Update() error {
 		g.UpdateMaxTps(-0.1)
 	}
 
+	g.counter++
+	if g.counter%(int(g.speedMultiplier*60)) == 0 {
+		ebiten.SetWindowTitle(fmt.Sprintf("GoGB | TPS: %.1f | FPS: %.1f",
+			ebiten.ActualTPS(), ebiten.ActualFPS()))
+	}
+
 	emu.RunForAFrame()
 
 	return nil
@@ -44,7 +52,7 @@ func (g *Game) Update() error {
 func (g *Game) UpdateMaxTps(increment float32) {
 	g.speedMultiplier += increment
 	println("New speed: ", g.speedMultiplier)
-	ebiten.SetMaxTPS((int)(g.speedMultiplier * 60))
+	ebiten.SetTPS((int)(g.speedMultiplier * 60))
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
@@ -75,7 +83,7 @@ func RunGame(emu *backend.Emulator) {
 
 	ebiten.SetWindowSize(width*4, height*4)
 	ebiten.SetWindowTitle("GoGB")
-	ebiten.SetMaxTPS(60)
+	ebiten.SetTPS(60)
 	if err := ebiten.RunGame(game); err != nil {
 		log.Fatal(err)
 	}

@@ -64,6 +64,12 @@ func WithRom(path string) func(*Emulator) {
 	}
 }
 
+func WithAudio(audio bool) func(*Emulator) {
+	return func(e *Emulator) {
+		e.enableApu = audio
+	}
+}
+
 func NewTestMBC() MBC {
 	return NewMBC0(make([]byte, 1<<15))
 }

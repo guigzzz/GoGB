@@ -16,6 +16,7 @@ func main() {
 	debug := flag.Bool("debug", false, "run the emulator in debug mode")
 	profile := flag.Bool("profile", false, "profile the emulator")
 	loadSave := flag.Bool("load-save", false, "try to load a save")
+	audio := flag.Bool("audio", true, "whether to enable audio")
 	flag.Parse()
 
 	if *profile {
@@ -39,7 +40,10 @@ func main() {
 	if *loadSave && backend.SaveExistsForRom(romPath) {
 		emu = backend.LoadSave(romPath)
 	} else {
-		emu = backend.NewEmulator(backend.WithRom(romPath), backend.WithDebug(*debug))
+		emu = backend.NewEmulator(
+			backend.WithRom(romPath),
+			backend.WithDebug(*debug),
+			backend.WithAudio(*audio))
 	}
 
 	if *loadSave {
