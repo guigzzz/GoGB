@@ -89,7 +89,7 @@ type APU struct {
 }
 
 const (
-	SAMPLE_BUFFER_SIZE = 1024
+	SAMPLE_BUFFER_SIZE = 48000
 )
 
 func NewAPU(ram []byte) *APU {
