@@ -16,6 +16,10 @@ type Game struct {
 	counter         int
 }
 
+const (
+	SPEED_INCREMENT = 1
+)
+
 func (g *Game) Update() error {
 
 	emu := g.e
@@ -31,11 +35,11 @@ func (g *Game) Update() error {
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyX) {
-		g.UpdateMaxTps(0.1)
+		g.UpdateMaxTps(SPEED_INCREMENT)
 	}
 
 	if inpututil.IsKeyJustPressed(ebiten.KeyZ) {
-		g.UpdateMaxTps(-0.1)
+		g.UpdateMaxTps(-SPEED_INCREMENT)
 	}
 
 	g.counter++
@@ -49,8 +53,15 @@ func (g *Game) Update() error {
 	return nil
 }
 
+func max(a, b float32) float32 {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (g *Game) UpdateMaxTps(increment float32) {
-	g.speedMultiplier += increment
+	g.speedMultiplier = max(g.speedMultiplier+increment, 1)
 	println("New speed: ", g.speedMultiplier)
 	ebiten.SetTPS((int)(g.speedMultiplier * 60))
 }
