@@ -7,13 +7,18 @@ import (
 	"sort"
 )
 
+const (
+	ROWS = 144
+	COLS = 160
+)
+
 // PPU represents the pixel processing unit
 // contains references to ram sections containing video relevant data
 type PPU struct {
 	ram          []byte      // reference to memory shared with CPU
 	Image        *image.RGBA // represents the current screen
-	rawLastImage *image.RGBA
-	screenBuffer [144 * 160]byte // contains the pixels to draw on next refresh
+	rawLastImage *[ROWS * COLS]byte
+	screenBuffer *[ROWS * COLS]byte // contains the pixels to draw on next refresh
 	irq          bool
 	sprites      Sprites
 
@@ -26,9 +31,14 @@ type PPU struct {
 func NewPPU(ram []byte, stepCpu func(int)) *PPU {
 	p := new(PPU)
 	p.ram = ram
-	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
-	p.rawLastImage = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{160, 144}})
+	p.Image = image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{COLS, ROWS}})
 	p.stepCpu = stepCpu
+
+	var rawLastImage [ROWS * COLS]byte
+	p.rawLastImage = &rawLastImage
+
+	var screenBuffer [ROWS * COLS]byte
+	p.screenBuffer = &screenBuffer
 
 	p.sprites = make([]Sprite, 0, 10)
 
@@ -431,21 +441,16 @@ func (p *PPU) RunEmulatorForAFrame() {
 	}
 }
 
-func getPixelColor(value byte) color.RGBA {
-	white := color.RGBA{0xFF, 0xFF, 0xFF, 0xFF}
-	lightgray := color.RGBA{0xAA, 0xAA, 0xAA, 0xFF}
-	gray := color.RGBA{0x55, 0x55, 0x55, 0xFF}
-	black := color.RGBA{0, 0, 0, 0xFF}
-
+func getPixelColor(value byte) byte {
 	switch value {
 	case 3:
-		return black
+		return 0
 	case 2:
-		return gray
+		return 0x55
 	case 1:
-		return lightgray
+		return 0xAA
 	case 0:
-		return white
+		return 0xFF
 	default:
 		panic(fmt.Sprintf("Got unexpected color: %0.8b", value))
 	}
@@ -455,22 +460,14 @@ func mean(a, b byte) byte {
 	return byte((uint16(a) + uint16(b)) / 2)
 }
 
-func meanColor(a, b color.RGBA) color.RGBA {
-	return color.RGBA{
-		mean(a.R, b.R),
-		mean(a.G, b.G),
-		mean(a.B, b.B),
-		mean(a.A, b.A),
-	}
-}
-
 func (p *PPU) writeBufferToImage() {
 	for i := 0; i < 144; i++ {
 		for j := 0; j < 160; j++ {
-			currentColor := p.rawLastImage.RGBAAt(j, i)
-			pixel := getPixelColor(p.screenBuffer[i*160+j])
-			p.Image.SetRGBA(j, i, meanColor(pixel, currentColor))
-			p.rawLastImage.SetRGBA(j, i, pixel)
+			currentColor := p.rawLastImage[i*COLS+j]
+			newColor := getPixelColor(p.screenBuffer[i*COLS+j])
+			c := mean(newColor, currentColor)
+			p.Image.SetRGBA(j, i, color.RGBA{c, c, c, 0xFF})
+			p.rawLastImage[i*COLS+j] = newColor
 		}
 	}
 }
