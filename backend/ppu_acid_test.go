@@ -48,9 +48,11 @@ func TestRunDmgAcid2(t *testing.T) {
 
 	emulator := NewEmulator(WithRom(romPath), WithDisableApu())
 
-	for i := 0; i < 100; i++ {
-		emulator.RunForAFrame()
-	}
+	AssertNoAllocations(t, func() {
+		for i := 0; i < 100; i++ {
+			emulator.RunForAFrame()
+		}
+	})
 
 	ref := getImage(refDmgAcid)
 	if !assert.Equal(t, ref, emulator.GetImage()) {

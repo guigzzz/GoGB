@@ -12,6 +12,11 @@ const (
 	wario  = "../rom/wario_walking_demo.gb"
 )
 
+func AssertNoAllocations(t *testing.T, f func()) {
+	alloc := testing.AllocsPerRun(1, f)
+	assert.Equal(t, 0.0, alloc)
+}
+
 func Init(path string) (*Emulator, *RecordingLogger) {
 	logger := NewRecordingLogger()
 
@@ -30,9 +35,11 @@ func TestRunBlarggTests(t *testing.T) {
 
 	cpu := emulator.cpu
 
-	for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
-		emulator.RunForAFrame()
-	}
+	AssertNoAllocations(t, func() {
+		for cpu.PC != 0x06F1 && cpu.cycleCounter < 500000000 {
+			emulator.RunForAFrame()
+		}
+	})
 
 	// emulator state should be always exactly the same after the test passes
 	assert.Equal(t, uint16(0x06F1), cpu.PC)
