@@ -290,9 +290,8 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 
 	// reset sprites array but keep underlying memory to reduce allocations
 	p.sprites = p.sprites[:0]
-	sprites := p.sprites
 
-	for i := 0; i < 40 && len(sprites) < 10; i++ {
+	for i := 0; i < 40 && len(p.sprites) < 10; i++ {
 
 		yPos := attributes[4*i]
 		if yPos > lineNumber+16 || lineNumber+16 >= yPos+spriteHeight {
@@ -311,16 +310,16 @@ func (p *PPU) getSpritePixels(lineNumber byte) ([160]byte, [160]byte, [160]bool)
 		palette := p.getSpritePalette(flags)
 		priority := flags&0x80 == 0
 
-		sprites = append(sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
+		p.sprites = append(p.sprites, Sprite{i, xPos, yPos, tileIndex, palette, xFlipped, yFlipped, priority})
 	}
 
-	sort.Sort(&sprites)
+	sort.Sort(&p.sprites)
 
 	pixels := [160]byte{}
 	palettes := [160]byte{}
 	priorities := [160]bool{}
 	tileData := p.getSpriteData()
-	for _, s := range sprites {
+	for _, s := range p.sprites {
 		var rowInTile byte
 		if s.yPos < 16 {
 			rowInTile = 16 - s.yPos + lineNumber
