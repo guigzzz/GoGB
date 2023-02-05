@@ -42,7 +42,7 @@ func TestRunMbcTests(t *testing.T) {
 	ref := getImage("ref/mbc.png")
 
 	for _, r := range roms {
-
+		r := r
 		t.Run(r, func(t *testing.T) {
 			t.Parallel()
 			emulator := NewEmulator(WithRom(path.Join(mbcTestRomPath, r)), WithDisableApu())
